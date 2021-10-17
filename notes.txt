@@ -1,0 +1,4 @@
+maze
+    cells [{id}]
+    connections[[id1, id2], []...]
+
