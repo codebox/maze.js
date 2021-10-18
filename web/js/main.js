@@ -1,8 +1,8 @@
 import {buildMaze} from './maze.js';
+import {renderers} from './renderers.js';
+import {buildRandom} from './random.js';
 
-const squareMaze = buildMaze({style:'square', width:10, height:10, algorithm:'kruskals'}),
-    circularMaze = buildMaze({style:'circle', layers:10, segments:10, algorithm:'prims'}),
-    hexagonMaze = buildMaze({style:'hex', width:10, height:10, algorithm:'prims'}),
-    triangleMaze = buildMaze({style:'triangle', width:10, height:10, algorithm:'prims'});
+const squareMaze = buildMaze({style:'square', width:10, height:10, algorithm:'binaryTree', random: buildRandom()});
 
-console.log(maze);
+renderers.canvas(squareMaze, {el: document.getElementById('canvas')});
+
