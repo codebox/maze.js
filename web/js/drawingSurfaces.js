@@ -1,11 +1,10 @@
 export const drawingSurfaces = {
     canvas(grid, config) {
-        const {el,gridWidth,gridHeight} = config,
+        const {el} = config,
             {width,height} = el,
-            magnification = Math.min(width/gridWidth, height/gridHeight),
             ctx = el.getContext('2d');
 
-        let colour = 'black';
+        let magnification = 1;
         function xCoord(x) {
             return x * magnification;
         }
@@ -13,6 +12,12 @@ export const drawingSurfaces = {
             return y * magnification;
         }
         return {
+            setSpaceRequirements(requiredWidth, requiredHeight) {
+                console.log(width, height)
+                console.log(requiredWidth, requiredHeight)
+                console.log(width/requiredWidth, height/requiredHeight)
+                magnification = Math.min(width/requiredWidth, height/requiredHeight);
+            },
             setColour(colour) {
                 ctx.strokeStyle = colour;
             },

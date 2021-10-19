@@ -4,8 +4,12 @@ import {buildRandom} from './random.js';
 
 const random = buildRandom();
 const SIZE=10;
-const squareMaze = buildMaze({style:'square', width:SIZE, height:SIZE, algorithm:'kruskals', random});
-const drawingSurface = drawingSurfaces.canvas(squareMaze, {el: document.getElementById('canvas'), gridWidth: SIZE, gridHeight: SIZE});
+const triangleMaze = buildMaze({style:'triangle', width:SIZE, height:SIZE, algorithm:'recursiveBacktrack', random});
+const squareMaze = buildMaze({style:'square', width:SIZE, height:SIZE, algorithm:'recursiveBacktrack', random});
+const hexagonMaze = buildMaze({style:'hexagon', width:SIZE, height:SIZE, algorithm:'recursiveBacktrack', random});
 
-squareMaze.render(drawingSurface);
+const maze = triangleMaze;
+const drawingSurface = drawingSurfaces.canvas(maze, {el: document.getElementById('canvas')});
+
+maze.render(drawingSurface);
 

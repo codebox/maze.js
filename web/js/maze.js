@@ -101,6 +101,8 @@ function buildSquareMaze(config) {
     };
 
     grid.render = function(drawingSurface) {
+        drawingSurface.setSpaceRequirements(grid.metadata.width, grid.metadata.height);
+
         grid.forEachCell(cell => {
             "use strict";
             const [x,y] = cell.coords,
@@ -122,15 +124,192 @@ function buildSquareMaze(config) {
                 drawingSurface.line(x,y,x,y+1);
             }
         });
-    }
+    };
+
     return grid;
 }
+
+function buildTriangularMaze(config) {
+    "use strict";
+    const grid = buildBaseGrid(config);
+
+    function hasBaseOnSouthSide(x,y) {
+        return (x+y) % 2;
+    }
+    grid.isSquare = false;
+    grid.initialise = function() {
+        for (let x=0; x < config.width; x++) {
+            for (let y=0; y < config.height; y++) {
+                grid.addCell(x, y);
+            }
+        }
+        for (let x=0; x < config.width; x++) {
+            for (let y=0; y < config.height; y++) {
+                const cell = grid.getCellByCoordinates(x, y),
+                    eastNeighbour = grid.getCellByCoordinates(x+1, y),
+                    southNeighbour = hasBaseOnSouthSide(x, y) && grid.getCellByCoordinates(x, y+1);
+                if (eastNeighbour) {
+                    grid.makeNeighbours({cell, direction: DIRECTION_WEST}, {cell: eastNeighbour, direction: DIRECTION_EAST});
+                }
+                if (southNeighbour) {
+                    grid.makeNeighbours({cell, direction: DIRECTION_NORTH}, {cell: southNeighbour, direction: DIRECTION_SOUTH});
+                }
+            }
+        }
+    };
+
+    grid.render = function(drawingSurface) {
+        const verticalAltitude = Math.sin(Math.PI/3);
+
+        drawingSurface.setSpaceRequirements(0.5 + grid.metadata.width/2, grid.metadata.height * verticalAltitude);
+
+        grid.forEachCell(cell => {
+            "use strict";
+            const [x,y] = cell.coords,
+                northNeighbour = cell.neighbours[DIRECTION_NORTH],
+                southNeighbour = cell.neighbours[DIRECTION_SOUTH],
+                eastNeighbour = cell.neighbours[DIRECTION_EAST],
+                westNeighbour = cell.neighbours[DIRECTION_WEST];
+
+            if (hasBaseOnSouthSide(x, y)) {
+                const p1x = x/2,
+                    p1y = (y+1) * verticalAltitude,
+                    p2x = (x+1)/2,
+                    p2y = p1y - verticalAltitude,
+                    p3x = p1x + 1,
+                    p3y = p1y;
+                if (!southNeighbour || !cell.isLinkedTo(southNeighbour)) {
+                    drawingSurface.line(p1x, p1y, p3x, p3y);
+                }
+                if (!eastNeighbour || !cell.isLinkedTo(eastNeighbour)) {
+                    drawingSurface.line(p2x, p2y, p3x, p3y);
+                }
+                if (!westNeighbour || !cell.isLinkedTo(westNeighbour)) {
+                    drawingSurface.line(p1x, p1y, p2x, p2y);
+                }
+
+            } else {
+                const p1x = x/2,
+                    p1y = y * verticalAltitude,
+                    p2x = (x+1)/2,
+                    p2y = p1y + verticalAltitude,
+                    p3x = p1x + 1,
+                    p3y = p1y;
+                if (!northNeighbour || !cell.isLinkedTo(northNeighbour)) {
+                    drawingSurface.line(p1x, p1y, p3x, p3y);
+                }
+                if (!eastNeighbour || !cell.isLinkedTo(eastNeighbour)) {
+                    drawingSurface.line(p2x, p2y, p3x, p3y);
+                }
+                if (!westNeighbour || !cell.isLinkedTo(westNeighbour)) {
+                    drawingSurface.line(p1x, p1y, p2x, p2y);
+                }
+            }
+        });
+    };
+
+    return grid;
+}
+
+function buildHexagonalMaze(config) {
+    "use strict";
+    const grid = buildBaseGrid(config);
+
+    grid.isSquare = false;
+    grid.initialise = function() {
+        for (let x=0; x < config.width; x++) {
+            for (let y=0; y < config.height; y++) {
+                grid.addCell(x, y);
+            }
+        }
+        for (let x=0; x < config.width; x++) {
+            for (let y=0; y < config.height; y++) {
+                const cell = grid.getCellByCoordinates(x, y),
+                    rowBasedXOffset = ((y + 1) % 2),
+                    eastNeighbour = grid.getCellByCoordinates(x+1, y),
+                    southWestNeighbour = grid.getCellByCoordinates(x - rowBasedXOffset, y+1),
+                    southEastNeighbour = grid.getCellByCoordinates(x + 1 - rowBasedXOffset, y+1);
+
+                if (eastNeighbour) {
+                    grid.makeNeighbours({cell, direction: DIRECTION_WEST}, {cell: eastNeighbour, direction: DIRECTION_EAST});
+                }
+                if (southWestNeighbour) {
+                    grid.makeNeighbours({cell, direction: DIRECTION_NORTH_EAST}, {cell: southWestNeighbour, direction: DIRECTION_SOUTH_WEST});
+                }
+                if (southEastNeighbour) {
+                    grid.makeNeighbours({cell, direction: DIRECTION_NORTH_WEST}, {cell: southEastNeighbour, direction: DIRECTION_SOUTH_EAST});
+                }
+            }
+        }
+    };
+
+    grid.render = function(drawingSurface) {
+        const yOffset1 = Math.cos(Math.PI / 3),
+            yOffset2 = 2 - yOffset1,
+            yOffset3 = 2,
+            xOffset = Math.sin(Math.PI / 3);
+
+        drawingSurface.setSpaceRequirements(grid.metadata.width * 2 * xOffset + Math.min(1, grid.metadata.height - 1) * xOffset, grid.metadata.height * yOffset2 + yOffset1);
+
+        grid.forEachCell(cell => {
+            "use strict";
+            const [x,y] = cell.coords,
+                eastNeighbour = cell.neighbours[DIRECTION_EAST],
+                westNeighbour = cell.neighbours[DIRECTION_WEST],
+                northEastNeighbour = cell.neighbours[DIRECTION_NORTH_EAST],
+                northWestNeighbour = cell.neighbours[DIRECTION_NORTH_WEST],
+                southEastNeighbour = cell.neighbours[DIRECTION_SOUTH_EAST],
+                southWestNeighbour = cell.neighbours[DIRECTION_SOUTH_WEST],
+
+                rowXOffset = (y % 2) * xOffset,
+                p1x = rowXOffset + x * xOffset * 2,
+                p1y = yOffset1 + y * yOffset2,
+                p2x = p1x,
+                p2y = (y + 1) * yOffset2,
+                p3x = rowXOffset + (2 * x + 1) * xOffset,
+                p3y = y * yOffset2 + yOffset3,
+                p4x = p2x + 2 * xOffset,
+                p4y = p2y,
+                p5x = p4x,
+                p5y = p1y,
+                p6x = p3x,
+                p6y = y * yOffset2;
+
+            if (!eastNeighbour || !cell.isLinkedTo(eastNeighbour)) {
+                drawingSurface.line(p4x, p4y, p5x, p5y);
+            }
+            if (!westNeighbour || !cell.isLinkedTo(westNeighbour)) {
+                drawingSurface.line(p1x, p1y, p2x, p2y);
+            }
+            if (!northEastNeighbour || !cell.isLinkedTo(northEastNeighbour)) {
+                drawingSurface.line(p5x, p5y, p6x, p6y);
+            }
+            if (!northWestNeighbour || !cell.isLinkedTo(northWestNeighbour)) {
+                drawingSurface.line(p1x, p1y, p6x, p6y);
+            }
+            if (!southEastNeighbour || !cell.isLinkedTo(southEastNeighbour)) {
+                drawingSurface.line(p3x, p3y, p4x, p4y);
+            }
+            if (!southWestNeighbour || !cell.isLinkedTo(southWestNeighbour)) {
+                drawingSurface.line(p2x, p2y, p3x, p3y);
+            }
+        });
+    };
+
+    return grid;
+}
+
+const shapeLookup = {
+    [SHAPE_SQUARE]: buildSquareMaze,
+    [SHAPE_TRIANGLE]: buildTriangularMaze,
+    [SHAPE_HEXAGON]: buildHexagonalMaze
+};
 
 export function buildMaze(config) {
     "use strict";
     const
         algorithm = algorithms[config.algorithm],
-        grid = buildSquareMaze(config);
+        grid = shapeLookup[config.style](config);
     grid.initialise();
     algorithm.fn(grid, config);
 

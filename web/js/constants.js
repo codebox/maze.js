@@ -8,6 +8,10 @@ const
     DIRECTION_SOUTH = 's',
     DIRECTION_EAST = 'e',
     DIRECTION_WEST = 'w',
+    DIRECTION_NORTH_WEST = 'nw',
+    DIRECTION_NORTH_EAST = 'ne',
+    DIRECTION_SOUTH_WEST = 'sw',
+    DIRECTION_SOUTH_EAST = 'se',
 
     METADATA_VISITED = 'visited',
     METADATA_SET_ID = 'setId';
