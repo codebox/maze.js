@@ -12,6 +12,10 @@ const
     DIRECTION_NORTH_EAST = 'ne',
     DIRECTION_SOUTH_WEST = 'sw',
     DIRECTION_SOUTH_EAST = 'se',
+    DIRECTION_CLOCKWISE = 'cw',
+    DIRECTION_ANTICLOCKWISE = 'acw',
+    DIRECTION_INWARDS = 'in',
+    DIRECTION_OUTWARDS = 'out',
 
     METADATA_VISITED = 'visited',
     METADATA_SET_ID = 'setId';

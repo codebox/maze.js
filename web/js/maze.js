@@ -299,10 +299,72 @@ function buildHexagonalMaze(config) {
     return grid;
 }
 
+function buildCircularMaze(config) {
+    "use strict";
+
+    function cellCountsForLayers(layers) {
+        const counts = [1], rowRadius = 1 / layers;
+        while (counts.length < layers) {
+            const layer = counts.length,
+                previousCount = counts[layer-1],
+                circumference = Math.PI * 2 * layer * rowRadius / previousCount;
+            counts.push(previousCount * Math.round(circumference / rowRadius));
+        }
+        return counts;
+    }
+
+    const grid = buildBaseGrid(config),
+        cellCounts = cellCountsForLayers(config.layers);
+
+    grid.isSquare = false;
+    grid.initialise = function() {
+        for (let l=0; l < config.layers; l++) {
+            const cellsInLayer = cellCounts[l];
+            for (let c=0; c < cellsInLayer; c++) {
+                grid.addCell(l, c);
+            }
+        }
+
+        for (let l=0; l < config.layers; l++) {
+            const cellsInLayer = cellCounts[l];
+            for (let c=0; c < cellsInLayer; c++) {
+                const cell = grid.getCellByCoordinates(l, c);
+                if (cellsInLayer > 1) {
+                    const clockwiseNeighbour = grid.getCellByCoordinates(l, (c + 1) % cellsInLayer),
+                        anticlockwiseNeighbour = grid.getCellByCoordinates(l, (c + cellsInLayer - 1) % cellsInLayer);
+                    grid.makeNeighbours({cell, direction: DIRECTION_CLOCKWISE}, {cell: anticlockwiseNeighbour, direction: DIRECTION_ANTICLOCKWISE});
+                    grid.makeNeighbours({cell, direction: DIRECTION_ANTICLOCKWISE}, {cell: clockwiseNeighbour, direction: DIRECTION_CLOCKWISE});
+                }
+
+                if (l < config.layers - 1) {
+                    const cellsInNextLayer = cellCounts[l+1],
+                        outerNeighbourCount = cellsInNextLayer / cellsInLayer;
+                    for (let o = 0; o < outerNeighbourCount; o++) {
+                        const outerNeighbour = grid.getCellByCoordinates(l+1, c * outerNeighbourCount + o);
+                        grid.makeNeighbours({cell, direction: DIRECTION_INWARDS}, {cell: outerNeighbour, direction: `DIRECTION_OUTWARDS_${o}`});
+                    }
+                }
+            }
+        }
+    };
+
+    grid.render = function(drawingSurface) {
+        drawingSurface.setSpaceRequirements(grid.metadata.layers * 2, grid.metadata.layers * 2,);
+
+        grid.forEachCell(cell => {
+            "use strict";
+            const [l,c] = cell.coords;
+        });
+    };
+
+    return grid;
+}
+
 const shapeLookup = {
     [SHAPE_SQUARE]: buildSquareMaze,
     [SHAPE_TRIANGLE]: buildTriangularMaze,
-    [SHAPE_HEXAGON]: buildHexagonalMaze
+    [SHAPE_HEXAGON]: buildHexagonalMaze,
+    [SHAPE_CIRCLE]: buildCircularMaze
 };
 
 export function buildMaze(config) {

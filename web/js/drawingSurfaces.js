@@ -13,9 +13,6 @@ export const drawingSurfaces = {
         }
         return {
             setSpaceRequirements(requiredWidth, requiredHeight) {
-                console.log(width, height)
-                console.log(requiredWidth, requiredHeight)
-                console.log(width/requiredWidth, height/requiredHeight)
                 magnification = Math.min(width/requiredWidth, height/requiredHeight);
             },
             setColour(colour) {
