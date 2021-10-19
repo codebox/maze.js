@@ -1,188 +1,138 @@
 import {algorithms} from './algorithms.js';
-/*
- config:
-    shape:
-        pattern: square, triangle, hexagon, circle
-        size: (height,width|layers,segments)
-    algorithm,
-    random
 
- */
-
-function buildCellCollection() {
+function buildBaseGrid(config) {
     "use strict";
-    const cellsById = {};
-
-    // function getLinkId(id1, id2) {
-    //     const [lowerId,higherId] = [id1,id2].sort();
-    //     return {id: `${lowerId}-${higherId}`, lowerId, higherId};
-    // }
-    // function pairCells(cellId1, cellId2, map) {
-    //     console.assert(cellId1 !== cellId2);
-    //     console.assert(cells[cellId1]);
-    //     console.assert(cells[cellId2]);
-    //     const {id,lowerId,higherId} = getLinkId(cellId1, cellId2);
-    //     console.assert(!map[id]);
-    //     map[id] = [lowerId, higherId];
-    // }
+    const cells = {}, {random} = config;
 
     function makeIdFromCoords(coords) {
         return coords.join(',');
     }
+    function buildCell(...coords) {
+        const id = makeIdFromCoords(coords);
+        return { //TODO move methods outside so we only have 1 copy of each function
+            id,
+            coords,
+            metadata: {},
+            neighbours: {
+                random(fnCriteria = () => true) {
+                    return random.choice(Object.values(this).filter(value => typeof value !== 'function').filter(fnCriteria));
+                }
+            },
+            isLinkedTo(otherCell) {
+                return this.links.includes(otherCell);
+            },
+            links: []
+        };
+    }
+
     return {
+        forEachCell(fn) {
+            Object.values(cells).forEach(fn);
+        },
+        link(cell1, cell2) {
+            console.assert(cell1 !== cell2);
+            console.assert(Object.values(cell1.neighbours).includes(cell2));
+            console.assert(!cell1.links.includes(cell2));
+            console.assert(Object.values(cell2.neighbours).includes(cell1));
+            console.assert(!cell2.links.includes(cell1));
+
+            cell1.links.push(cell2);
+            cell2.links.push(cell1);
+        },
+        metadata: config,
+        randomCell(fnCriteria = () => true) {
+            return random.choice(Object.values(cells).filter(fnCriteria));
+        },
         addCell(...coords) {
-            const id = makeIdFromCoords(coords);
-            console.assert(!cellsById[id]);
-            cellsById[id] = {id, coords, metadata: {}, links: [], neighbours: []};
+            const cell = buildCell(...coords),
+                id = cell.id;
+            console.assert(!cells[id]);
+            cells[id] = cell;
             return id;
         },
-        addLink(id1, id2) {
-            console.assert(id1 !== id2);
-            console.assert(cellsById[id1]);
-            console.assert(cellsById[id2]);
-            console.assert(!cellsById[id1].links.includes(id2));
-            console.assert(!cellsById[id2].links.includes(id1));
-            cellsById[id1].links.push(id2);
-            cellsById[id2].links.push(id1);
+        makeNeighbours(cell1WithDirection, cell2WithDirection) {
+            const
+                cell1 = cell1WithDirection.cell,
+                cell1Direction = cell1WithDirection.direction,
+                cell2 = cell2WithDirection.cell,
+                cell2Direction = cell2WithDirection.direction;
+
+            console.assert(cell1 !== cell2);
+            console.assert(cell1Direction !== cell2Direction);
+            console.assert(!cell1.neighbours[cell2Direction]);
+            console.assert(!cell2.neighbours[cell1Direction]);
+            cell1.neighbours[cell2Direction] = cell2;
+            cell2.neighbours[cell1Direction] = cell1;
         },
-        addNeighbours(id1, id2) {
-            console.assert(id1 !== id2);
-            console.assert(cellsById[id1]);
-            console.assert(cellsById[id2]);
-            console.assert(!cellsById[id1].neighbours.includes(id2));
-            console.assert(!cellsById[id2].neighbours.includes(id1));
-            cellsById[id1].neighbours.push(id2);
-            cellsById[id2].neighbours.push(id1);
-        },
-        getCells() {
-            return Object.values(cellsById);
-        },
-        getCellByCoords(...coords) {
+        getCellByCoordinates(...coords) {
             const id = makeIdFromCoords(coords);
-            return cellsById[id];
+            return cells[id];
         },
-        hasLink(id1, id2) {
-            console.assert(cellsById[id1].links.includes(id2) === cellsById[id2].links.includes(id1));
-            return cellsById[id1].links.includes(id2);
-        },
-        hasNeighbour(id1, id2) {
-            console.assert(cellsById[id1].neighbours.includes(id2) === cellsById[id2].neighbours.includes(id1));
-            return cellsById[id1].neighbours.includes(id2);
+        get cellCount() {
+            return Object.values(cells).length;
         }
     };
 }
 
-const cellInitialisers = {
-    square(cells, config) {
-        "use strict";
-        for (let y=0; y<config.height; y++) {
-            for (let x=0; x<config.width; x++) {
-                cells.addCell(x, y);
+function buildSquareMaze(config) {
+    "use strict";
+    const grid = buildBaseGrid(config);
+
+    grid.isSquare = true;
+    grid.initialise = function() {
+        for (let x=0; x < config.width; x++) {
+            for (let y=0; y < config.height; y++) {
+                grid.addCell(x, y);
             }
         }
-    }
-};
-
-const neighbourBuilders = {
-    square(grid, cell) {
-        "use strict";
-        return {
-            getByDirection(direction) {
-                const [x,y] = cell.coords;
-                switch (direction) {
-                    case DIRECTION_NORTH:
-                        return grid.getCellByCoordinates(x, y-1);
-                    case DIRECTION_SOUTH:
-                        return grid.getCellByCoordinates(x, y+1);
-                    case DIRECTION_EAST:
-                        return grid.getCellByCoordinates(x+1, y);
-                    case DIRECTION_WEST:
-                        return grid.getCellByCoordinates(x-1, y);
-                    default:
-                        console.assert(direction);
+        for (let x=0; x < config.width; x++) {
+            for (let y=0; y < config.height; y++) {
+                const cell = grid.getCellByCoordinates(x, y),
+                    eastNeighbour = grid.getCellByCoordinates(x+1, y),
+                    southNeighbour = grid.getCellByCoordinates(x, y+1);
+                if (eastNeighbour) {
+                    grid.makeNeighbours({cell, direction: DIRECTION_WEST}, {cell: eastNeighbour, direction: DIRECTION_EAST});
+                }
+                if (southNeighbour) {
+                    grid.makeNeighbours({cell, direction: DIRECTION_NORTH}, {cell: southNeighbour, direction: DIRECTION_SOUTH});
                 }
             }
         }
-    }
-};
+    };
 
-const renderers = {
-    square(grid, drawingSurface, config) {
+    grid.render = function(drawingSurface) {
         grid.forEachCell(cell => {
             "use strict";
             const [x,y] = cell.coords,
-                neighbours = grid.getNeighbours(cell),
-                northNeighbour = neighbours.getByDirection(DIRECTION_NORTH),
-                southNeighbour = neighbours.getByDirection(DIRECTION_SOUTH),
-                eastNeighbour = neighbours.getByDirection(DIRECTION_EAST),
-                westNeighbour = neighbours.getByDirection(DIRECTION_WEST);
+                northNeighbour = cell.neighbours[DIRECTION_NORTH],
+                southNeighbour = cell.neighbours[DIRECTION_SOUTH],
+                eastNeighbour = cell.neighbours[DIRECTION_EAST],
+                westNeighbour = cell.neighbours[DIRECTION_WEST];
 
-            if (!northNeighbour || !grid.hasLink(cell, northNeighbour)) {
+            if (!northNeighbour || !cell.isLinkedTo(northNeighbour)) {
                 drawingSurface.line(x,y,x+1,y);
             }
-            if (!southNeighbour || ! grid.hasLink(cell, southNeighbour)) {
+            if (!southNeighbour || !cell.isLinkedTo(southNeighbour)) {
                 drawingSurface.line(x,y+1,x+1,y+1);
             }
-            if (!eastNeighbour || ! grid.hasLink(cell, eastNeighbour)) {
+            if (!eastNeighbour || !cell.isLinkedTo(eastNeighbour)) {
                 drawingSurface.line(x+1,y,x+1,y+1);
             }
-            if (!westNeighbour || ! grid.hasLink(cell, westNeighbour)) {
+            if (!westNeighbour || !cell.isLinkedTo(westNeighbour)) {
                 drawingSurface.line(x,y,x,y+1);
             }
         });
     }
+    return grid;
 }
-function buildGrid(config) {
-    "use strict";
-    const metadata = {},
-        cells = buildCellCollection(),
-        initialiseCells = cellInitialisers[config.style],
-        neighbourBuilder = neighbourBuilders[config.style],
-        renderer = renderers[config.style];
-
-    initialiseCells(cells, config);
-
-    return {
-        forEachCell(fn) {
-            cells.getCells().forEach(cell => {
-                fn(cell);
-            });
-        },
-        getCells(){
-            return cells.getCells();
-        },
-        getCellByCoordinates(...targetCoords){
-            return cells.getCellByCoords(...targetCoords);
-        },
-        getNeighbours(cell){
-            return neighbourBuilder(this, cell);
-        },
-        link(cell1, cell2) {
-            cells.addLink(cell1.id, cell2.id);
-        },
-        hasLink(cell1, cell2) {
-            return cells.hasLink(cell1.id, cell2.id);
-        },
-        metadata: {
-            shape: {
-                pattern: config.style
-            },
-            height: config.height,
-            width: config.width
-        },
-        render(drawingSurface) {
-            renderer(this, drawingSurface, config);
-        }
-    }
-}
-
 
 export function buildMaze(config) {
     "use strict";
-    const algorithm = algorithms[config.algorithm],
-        grid = buildGrid(config);
-
-    algorithm.fn(grid, {random: config.random});
+    const
+        algorithm = algorithms[config.algorithm],
+        grid = buildSquareMaze(config);
+    grid.initialise();
+    algorithm.fn(grid, config);
 
     return grid;
 }

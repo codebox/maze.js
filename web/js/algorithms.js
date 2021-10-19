@@ -1,8 +1,7 @@
-import {forEachContiguousPair, shuffleArray} from './utils.js';
+import {forEachContiguousPair} from './utils.js';
 
 
 function markAsVisited(cell) {
-    console.assert(!cell.metadata[METADATA_VISITED]);
     cell.metadata[METADATA_VISITED] = true;
 }
 
@@ -14,26 +13,19 @@ function isUnvisited(cell) {
     return !isVisited(cell);
 }
 
-function getRandomNeighbour(grid, cell, fnCriteria = () => true) {
-    const neighbours = grid.getNeighbours(cell, fnCriteria).toArray();
-    if (neighbours.length) {
-        return random.choice(neighbours);
-    }
-}
-
 export const algorithms = {
     'binaryTree': {
         metadata: {}, // description, maskable, unsupported shapes
         fn(grid, config) {
             "use strict";
-            console.assert(grid.metadata.shape.pattern === SHAPE_SQUARE);
+            console.assert(grid.isSquare);
 
             const {random} = config;
 
             grid.forEachCell(cell => {
-                 const neighbours = grid.getNeighbours(cell),
-                     eastNeighbour = neighbours.getByDirection(DIRECTION_EAST),
-                     southNeighbour = neighbours.getByDirection(DIRECTION_SOUTH),
+                 const
+                     eastNeighbour = cell.neighbours[DIRECTION_EAST],
+                     southNeighbour = cell.neighbours[DIRECTION_SOUTH],
                      goEast = random.int(2) === 0,
                      goSouth = !goEast,
                      linkEast = eastNeighbour && (goEast || !southNeighbour),
@@ -52,7 +44,7 @@ export const algorithms = {
         metadata: {},
         fn(grid, config) {
             "use strict";
-            console.assert(grid.metadata.shape.pattern === SHAPE_SQUARE);
+            console.assert(grid.isSquare);
 
             const {random} = config;
 
@@ -60,18 +52,17 @@ export const algorithms = {
                 let currentRun = [];
                 for (let x = 0; x < grid.metadata.width; x++) {
                     const cell = grid.getCellByCoordinates(x, y),
-                        neighbours = grid.getNeighbours(cell),
-                        eastNeighbour = neighbours.getByDirection(DIRECTION_EAST),
-                        southNeighbour = neighbours.getByDirection(DIRECTION_SOUTH),
+                        eastNeighbour = cell.neighbours[DIRECTION_EAST],
+                        southNeighbour = cell.neighbours[DIRECTION_SOUTH],
                         goEast = eastNeighbour && (random.int(2) === 0 || !southNeighbour);
 
+                    currentRun.push(cell);
                     if (goEast) {
                         grid.link(cell, eastNeighbour);
-                        currentRun.push(cell);
 
                     } else if (southNeighbour) {
                         const randomCellFromRun = random.choice(currentRun),
-                            southNeighbourOfRandomCell = randomCellFromRun.getByDirection(DIRECTION_SOUTH);
+                            southNeighbourOfRandomCell = randomCellFromRun.neighbours[DIRECTION_SOUTH];
 
                         grid.link(randomCellFromRun, southNeighbourOfRandomCell);
 
@@ -85,9 +76,8 @@ export const algorithms = {
         metadata: {},
         fn(grid, config) {
             "use strict";
-            const {random} = config,
-                allCells = grid.getCells();
-            let unvisitedCount = allCells.length, currentCell;
+            const {random} = config;
+            let unvisitedCount = grid.cellCount, currentCell;
 
             function moveTo(nextCell) {
                 if (isUnvisited(nextCell)) {
@@ -100,11 +90,11 @@ export const algorithms = {
                 currentCell = nextCell;
             }
 
-            const startCell = random.choice(allCells);
+            const startCell = grid.randomCell();
             moveTo(startCell);
 
             while (unvisitedCount) {
-                const nextCell = getRandomNeighbour(grid, currentCell);
+                const nextCell = currentCell.neighbours.random();
                 moveTo(nextCell);
             }
 
@@ -116,13 +106,6 @@ export const algorithms = {
             "use strict";
             const {random} = config;
 
-            function getRandomUnvisitedCell() {
-                const allUnvisitedCells = grid.getCells(isUnvisited);
-                if (allUnvisitedCells.length) {
-                    return random.choice(allUnvisitedCells);
-                }
-            }
-
             function removeLoops(cells) {
                 const latestCell = cells[cells.length - 1],
                     indexOfPreviousVisit = cells.findIndex(cell => cell === latestCell);
@@ -131,14 +114,14 @@ export const algorithms = {
                 }
             }
 
-            markAsVisited(getRandomUnvisitedCell());
+            markAsVisited(grid.randomCell(isUnvisited));
 
             let currentCell;
-            while (currentCell = getRandomUnvisitedCell()) {
+            while (currentCell = grid.randomCell(isUnvisited)) {
                 let currentPath = [currentCell];
 
                 while (true) {
-                    const nextCell = getRandomNeighbour(grid, currentCell);
+                    const nextCell = currentCell.neighbours.random();
                     currentPath.push(nextCell);
 
                     if (isUnvisited(nextCell)) {
@@ -159,23 +142,22 @@ export const algorithms = {
             "use strict";
             const {random} = config;
 
-            let currentCell = getRandomUnvisitedCell();
+            let currentCell = grid.randomCell();
             markAsVisited(currentCell);
 
             while (true) {
-                const nextCell = getRandomNeighbour(grid, currentCell, isUnvisited);
+                const nextCell = currentCell.neighbours.random(isUnvisited);
                 if (nextCell) {
                     markAsVisited(nextCell);
                     grid.link(currentCell, nextCell);
                     currentCell = nextCell;
                 } else {
-                    const unvisitedCellsThatHaveVisitedNeighbours = grid.getCells(cell => isUnvisited(cell) && grid.getNeighbours(cell, isVisited).toArray().length);
-                    if (unvisitedCellsThatHaveVisitedNeighbours.length) {
-                        const newStartCell = random.choice(unvisitedCellsThatHaveVisitedNeighbours),
-                            visitedNeighbour = getRandomNeighbour(grid, newStartCell, isVisited);
-                        markAsVisited(newStartCell);
-                        grid.link(newStartCell, visitedNeighbour);
-                        currentCell = newStartCell;
+                    const unvisitedCellWithVisitedNeighbours = grid.randomCell(cell => isUnvisited(cell) && cell.neighbours.random(isVisited));
+                    if (unvisitedCellWithVisitedNeighbours) {
+                        const visitedNeighbour = unvisitedCellWithVisitedNeighbours.neighbours.random(isVisited);
+                        markAsVisited(unvisitedCellWithVisitedNeighbours);
+                        grid.link(unvisitedCellWithVisitedNeighbours, visitedNeighbour);
+                        currentCell = unvisitedCellWithVisitedNeighbours;
                     } else {
                         break;
                     }
@@ -200,15 +182,15 @@ export const algorithms = {
                 stack.push(currentCell);
             }
 
-            visitCell(getRandomUnvisitedCell());
+            visitCell(grid.randomCell());
 
             while (stack.length) {
-                const nextCell = getRandomNeighbour(grid, currentCell, isUnvisited);
+                const nextCell = currentCell.neighbours.random(isUnvisited);
                 if (nextCell) {
                     visitCell(nextCell);
 
                 } else {
-                    while (!getRandomNeighbour(grid, currentCell, isUnvisited)) {
+                    while (!currentCell.neighbours.random(isUnvisited)) {
                         stack.pop();
                         if (!stack.length) {
                             break;
@@ -221,16 +203,18 @@ export const algorithms = {
     },
     'kruskals': {
         metadata: {},
-        fn(grid) {
+        fn(grid, config) {
             "use strict";
-            console.assert(grid.metadata.shape.pattern === SHAPE_SQUARE);
+            const {random} = config;
+
+            console.assert(grid.isSquare);
 
             const links = [],
                 connectedSets = {};
             grid.forEachCell(cell => {
-                const neighbours = grid.getNeighbours(cell),
-                    eastNeighbour = neighbours.getByDirection(DIRECTION_EAST),
-                    southNeighbour = neighbours.getByDirection(DIRECTION_SOUTH);
+                const
+                    eastNeighbour = cell.neighbours[DIRECTION_EAST],
+                    southNeighbour = cell.neighbours[DIRECTION_SOUTH];
 
                 if (eastNeighbour) {
                     links.push([cell, eastNeighbour]);
@@ -242,7 +226,7 @@ export const algorithms = {
                 connectedSets[cell.id] = [cell];
             });
 
-            shuffleArray(links);
+            random.shuffle(links);
 
             function mergeSets(id1, id2) {
                 connectedSets[id2].forEach(cell => {

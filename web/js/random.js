@@ -20,8 +20,19 @@ export function buildRandom(seed=Date.now()) {
         },
         choice(array) {
             const length = array.length;
-            console.assert(length);
-            return array[this.int(length)];
+            if (length) {
+                return array[this.int(length)];
+            }
+        },
+        shuffle(array) {
+            let i = array.length;
+
+            while (i) {
+                const r = this.int(i--);
+                [array[i], array[r]] = [array[r], array[i]];
+            }
+
+            return array;
         },
         get seed() {
             return seed;
