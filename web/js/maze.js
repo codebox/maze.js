@@ -11,33 +11,63 @@ import {algorithms} from './algorithms.js';
 
 function buildCellCollection() {
     "use strict";
-    const cells = {},
-        links = {};
+    const cellsById = {};
 
-    function getLinkId(id1, id2) {
-        const [lowerId,higherId] = [id1,id2].sort();
-        return {id: `${lowerId}-${higherId}`, lowerId, higherId};
+    // function getLinkId(id1, id2) {
+    //     const [lowerId,higherId] = [id1,id2].sort();
+    //     return {id: `${lowerId}-${higherId}`, lowerId, higherId};
+    // }
+    // function pairCells(cellId1, cellId2, map) {
+    //     console.assert(cellId1 !== cellId2);
+    //     console.assert(cells[cellId1]);
+    //     console.assert(cells[cellId2]);
+    //     const {id,lowerId,higherId} = getLinkId(cellId1, cellId2);
+    //     console.assert(!map[id]);
+    //     map[id] = [lowerId, higherId];
+    // }
+
+    function makeIdFromCoords(coords) {
+        return coords.join(',');
     }
-
     return {
         addCell(...coords) {
-            const id = coords.join(',');
-            console.assert(!cells[id]);
-            cells[id] = {id, coords, metadata: {}};
+            const id = makeIdFromCoords(coords);
+            console.assert(!cellsById[id]);
+            cellsById[id] = {id, coords, metadata: {}, links: [], neighbours: []};
+            return id;
         },
-        addLink(cellId1, cellId2) {
-            console.assert(cellId1 !== cellId2);
-            console.assert(cells[cellId1]);
-            console.assert(cells[cellId2]);
-            const {id,lowerId,higherId} = getLinkId(cellId1, cellId2);
-            console.assert(!links[id]);
-            links[id] = [lowerId, higherId];
+        addLink(id1, id2) {
+            console.assert(id1 !== id2);
+            console.assert(cellsById[id1]);
+            console.assert(cellsById[id2]);
+            console.assert(!cellsById[id1].links.includes(id2));
+            console.assert(!cellsById[id2].links.includes(id1));
+            cellsById[id1].links.push(id2);
+            cellsById[id2].links.push(id1);
+        },
+        addNeighbours(id1, id2) {
+            console.assert(id1 !== id2);
+            console.assert(cellsById[id1]);
+            console.assert(cellsById[id2]);
+            console.assert(!cellsById[id1].neighbours.includes(id2));
+            console.assert(!cellsById[id2].neighbours.includes(id1));
+            cellsById[id1].neighbours.push(id2);
+            cellsById[id2].neighbours.push(id1);
         },
         getCells() {
-            return Object.values(cells);
+            return Object.values(cellsById);
         },
-        hasLink(cellId1, cellId2) {
-            return getLinkId(cellId1, cellId2).id in links;
+        getCellByCoords(...coords) {
+            const id = makeIdFromCoords(coords);
+            return cellsById[id];
+        },
+        hasLink(id1, id2) {
+            console.assert(cellsById[id1].links.includes(id2) === cellsById[id2].links.includes(id1));
+            return cellsById[id1].links.includes(id2);
+        },
+        hasNeighbour(id1, id2) {
+            console.assert(cellsById[id1].neighbours.includes(id2) === cellsById[id2].neighbours.includes(id1));
+            return cellsById[id1].neighbours.includes(id2);
         }
     };
 }
@@ -122,11 +152,7 @@ function buildGrid(config) {
             return cells.getCells();
         },
         getCellByCoordinates(...targetCoords){
-            const match = this.getCells().filter(cell => cell.coords.every((cellCoord, i) => cellCoord === targetCoords[i])); // TODO speed this up
-            if (match.length === 1) {
-                return match[0];
-            }
-            console.assert(match.length === 0, match.length, targetCoords);
+            return cells.getCellByCoords(...targetCoords);
         },
         getNeighbours(cell){
             return neighbourBuilder(this, cell);
