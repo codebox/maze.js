@@ -12,9 +12,9 @@ export const drawingSurfaces = {
             return y * magnification;
         }
         function distance(d) {
-            "use strict";
             return d * magnification;
         }
+
         return {
             setSpaceRequirements(requiredWidth, requiredHeight) {
                 magnification = Math.min(width/requiredWidth, height/requiredHeight);
@@ -27,7 +27,6 @@ export const drawingSurfaces = {
                 ctx.moveTo(xCoord(x1), yCoord(y1));
                 ctx.lineTo(xCoord(x2), yCoord(y2));
                 ctx.stroke();
-                // console.log(x1, y1, '-',x2, y2)
             },
             rectangle(x1, y1, x2, y2) {
                 ctx.beginPath();
@@ -43,16 +42,49 @@ export const drawingSurfaces = {
         };
     },
     svg(grid, config) {
+        const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
+        const {el} = config,
+            width = el.clientWidth,
+            height = el.clientHeight;
+        let magnification = 1, colour = 'black';
+
+        function coord(x) {
+            return Math.round(x * magnification);
+        }
+        function polarToXy(cx, cy, d, angle) {
+            return [coord(cx + d * Math.sin(angle)), coord(cy - d * Math.cos(angle))];
+        }
 
         return {
-            setColour(colour) {
-
+            setSpaceRequirements(requiredWidth, requiredHeight) {
+                magnification = Math.min(width/requiredWidth, height/requiredHeight);
+            },
+            setColour(newColour) {
+                colour = newColour;
             },
             line(x1, y1, x2, y2) {
-
+                const elLine = document.createElementNS(SVG_NAMESPACE, 'line');
+                elLine.setAttribute('x1', coord(x1));
+                elLine.setAttribute('y1', coord(y1));
+                elLine.setAttribute('x2', coord(x2));
+                elLine.setAttribute('y2', coord(y2));
+                elLine.setAttribute('stroke', colour);
+                el.appendChild(elLine);
             },
             rectangle(x1, y1, x2, y2) {
 
+            },
+            arc(cx, cy, r, startAngle, endAngle) {
+                const [startX, startY] = polarToXy(cx, cy, r, startAngle),
+                    [endX, endY] = polarToXy(cx, cy, r, endAngle),
+                    radius = coord(r),
+                    isLargeArc = endAngle - startAngle > Math.PI/2,
+                    d = `M ${startX} ${startY} A ${radius} ${radius} 0 ${isLargeArc ? "1" : "0"} 1 ${endX} ${endY}`,
+                    elPath = document.createElementNS(SVG_NAMESPACE, 'path');
+                elPath.setAttribute('d', d);
+                elPath.setAttribute('fill', 'none');
+                elPath.setAttribute('stroke', colour);
+                el.appendChild(elPath);
             }
         };
     }
