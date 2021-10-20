@@ -17,5 +17,8 @@ const
     DIRECTION_INWARDS = 'in',
     DIRECTION_OUTWARDS = 'out',
 
+    EVENT_CLICK = 'click',
+    EVENT_MOUSE_OVER = 'mouseOver',
+
     METADATA_VISITED = 'visited',
     METADATA_SET_ID = 'setId';

@@ -7,3 +7,20 @@ export function forEachContiguousPair(array, fn) {
     }
 }
 
+export function buildEventTarget() {
+    "use strict";
+    const eventTarget = new EventTarget();
+
+    return {
+        trigger(eventName, eventData) {
+            const event = new Event(eventName);
+            event.data = eventData;
+            eventTarget.dispatchEvent(event);
+        },
+        on(eventName, eventHandler) {
+            eventTarget.addEventListener(eventName, event => {
+                eventHandler(event.data);
+            });
+        }
+    };
+}

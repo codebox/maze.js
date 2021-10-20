@@ -1,15 +1,32 @@
+import {buildEventTarget} from './utils.js';
+
 export const drawingSurfaces = {
     canvas(grid, config) {
-        const {el} = config,
+        const eventTarget = buildEventTarget(),
+            {el} = config,
             {width,height} = el,
             ctx = el.getContext('2d');
+
+        el.addEventListener('click', event => {
+            eventTarget.trigger(EVENT_CLICK, {
+                x: invXCoord(event.offsetX),
+                y: invYCoord(event.offsetY),
+                shift: event.shiftKey
+            });
+        });
 
         let magnification = 1;
         function xCoord(x) {
             return x * magnification;
         }
+        function invXCoord(x) {
+            return x / magnification;
+        }
         function yCoord(y) {
             return y * magnification;
+        }
+        function invYCoord(y) {
+            return y / magnification;
         }
         function distance(d) {
             return d * magnification;
@@ -38,6 +55,9 @@ export const drawingSurfaces = {
                 ctx.beginPath();
                 ctx.arc(xCoord(cx), yCoord(cy), distance(r), startAngle - Math.PI / 2, endAngle - Math.PI / 2);
                 ctx.stroke();
+            },
+            on(eventName, handler) {
+                eventTarget.on(eventName, handler);
             }
         };
     },
@@ -48,11 +68,18 @@ export const drawingSurfaces = {
             height = el.clientHeight;
         let magnification = 1, colour = 'black';
 
-        function coord(x) {
-            return Math.round(x * magnification);
+        function xCoord(x) {
+            return x * magnification;
         }
+        function yCoord(y) {
+            return y * magnification;
+        }
+        function distance(d) {
+            return d * magnification;
+        }
+
         function polarToXy(cx, cy, d, angle) {
-            return [coord(cx + d * Math.sin(angle)), coord(cy - d * Math.cos(angle))];
+            return [xCoord(cx + d * Math.sin(angle)), yCoord(cy - d * Math.cos(angle))];
         }
 
         return {
@@ -64,10 +91,10 @@ export const drawingSurfaces = {
             },
             line(x1, y1, x2, y2) {
                 const elLine = document.createElementNS(SVG_NAMESPACE, 'line');
-                elLine.setAttribute('x1', coord(x1));
-                elLine.setAttribute('y1', coord(y1));
-                elLine.setAttribute('x2', coord(x2));
-                elLine.setAttribute('y2', coord(y2));
+                elLine.setAttribute('x1', xCoord(x1));
+                elLine.setAttribute('y1', yCoord(y1));
+                elLine.setAttribute('x2', xCoord(x2));
+                elLine.setAttribute('y2', yCoord(y2));
                 elLine.setAttribute('stroke', colour);
                 el.appendChild(elLine);
             },
@@ -77,7 +104,7 @@ export const drawingSurfaces = {
             arc(cx, cy, r, startAngle, endAngle) {
                 const [startX, startY] = polarToXy(cx, cy, r, startAngle),
                     [endX, endY] = polarToXy(cx, cy, r, endAngle),
-                    radius = coord(r),
+                    radius = distance(r),
                     isLargeArc = endAngle - startAngle > Math.PI/2,
                     d = `M ${startX} ${startY} A ${radius} ${radius} 0 ${isLargeArc ? "1" : "0"} 1 ${endX} ${endY}`,
                     elPath = document.createElementNS(SVG_NAMESPACE, 'path');
@@ -85,6 +112,9 @@ export const drawingSurfaces = {
                 elPath.setAttribute('fill', 'none');
                 elPath.setAttribute('stroke', colour);
                 el.appendChild(elPath);
+            },
+            on(eventName, handler) {
+                eventTarget.addEventListener(eventName, handler);
             }
         };
     }

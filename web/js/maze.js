@@ -1,4 +1,7 @@
 import {algorithms} from './algorithms.js';
+import {buildEventTarget} from './utils.js';
+
+const eventTarget = buildEventTarget();
 
 function buildBaseGrid(config) {
     "use strict";
@@ -70,6 +73,9 @@ function buildBaseGrid(config) {
         },
         get cellCount() {
             return Object.values(cells).length;
+        },
+        on(eventName, handler) {
+            eventTarget.on(eventName, handler);
         }
     };
 }
@@ -101,6 +107,13 @@ function buildSquareMaze(config) {
     };
 
     grid.render = function(drawingSurface) {
+        drawingSurface.on(EVENT_CLICK, event => {
+            eventTarget.trigger(EVENT_CLICK, {
+                x: Math.floor(event.x),
+                y: Math.floor(event.y),
+                shift: event.shift
+            });
+        });
         drawingSurface.setSpaceRequirements(grid.metadata.width, grid.metadata.height);
 
         grid.forEachCell(cell => {
@@ -160,6 +173,39 @@ function buildTriangularMaze(config) {
 
     grid.render = function(drawingSurface) {
         const verticalAltitude = Math.sin(Math.PI/3);
+
+        drawingSurface.on(EVENT_CLICK, event => {
+            function getXCoord(event) {
+                const xDivision = 2 * event.x,
+                    y = getYCoord(event);
+
+                if ((Math.floor(xDivision) + y) % 2) {
+                    const tx = 1 - (xDivision % 1),
+                        ty = (event.y / verticalAltitude) % 1;
+                    if (tx > ty) {
+                        return Math.floor(xDivision) - 1;
+                    } else {
+                        return Math.floor(xDivision);
+                    }
+                } else {
+                    const tx = xDivision % 1,
+                        ty = (event.y / verticalAltitude) % 1;
+                    if (tx > ty) {
+                        return Math.floor(xDivision);
+                    } else {
+                        return Math.floor(xDivision) - 1;
+                    }
+                }
+            }
+            function getYCoord(event) {
+                return Math.floor(event.y / verticalAltitude);
+            }
+            eventTarget.trigger(EVENT_CLICK, {
+                x: getXCoord(event),
+                y: getYCoord(event),
+                shift: event.shift
+            });
+        });
 
         drawingSurface.setSpaceRequirements(0.5 + grid.metadata.width/2, grid.metadata.height * verticalAltitude);
 
