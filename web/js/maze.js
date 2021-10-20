@@ -333,7 +333,6 @@ function buildCircularMaze(config) {
                     const clockwiseNeighbour = grid.getCellByCoordinates(l, (c + 1) % cellsInLayer),
                         anticlockwiseNeighbour = grid.getCellByCoordinates(l, (c + cellsInLayer - 1) % cellsInLayer);
                     grid.makeNeighbours({cell, direction: DIRECTION_CLOCKWISE}, {cell: anticlockwiseNeighbour, direction: DIRECTION_ANTICLOCKWISE});
-                    grid.makeNeighbours({cell, direction: DIRECTION_ANTICLOCKWISE}, {cell: clockwiseNeighbour, direction: DIRECTION_CLOCKWISE});
                 }
 
                 if (l < config.layers - 1) {
@@ -351,9 +350,42 @@ function buildCircularMaze(config) {
     grid.render = function(drawingSurface) {
         drawingSurface.setSpaceRequirements(grid.metadata.layers * 2, grid.metadata.layers * 2,);
 
+        const cx = grid.metadata.layers,
+            cy = grid.metadata.layers;
+
+        function polarToXy(angle, distance) {
+            return [cx + distance * Math.sin(angle), cy - distance * Math.cos(angle)];
+        }
+
         grid.forEachCell(cell => {
             "use strict";
-            const [l,c] = cell.coords;
+            const [l,c] = cell.coords,
+                cellsInLayer = cellCounts[l],
+                anglePerCell = Math.PI * 2 / cellsInLayer,
+                startAngle = anglePerCell * c,
+                endAngle = startAngle + anglePerCell,
+                innerDistance = l,
+                outerDistance = l + 1,
+                outermostLayer = l === grid.metadata.layers - 1,
+                clockwiseNeighbour = cell.neighbours[DIRECTION_CLOCKWISE],
+                anticlockwiseNeighbour = cell.neighbours[DIRECTION_ANTICLOCKWISE],
+                inwardsNeighbour = cell.neighbours[DIRECTION_INWARDS];
+
+            if (l > 0) {
+                if (!cell.isLinkedTo(anticlockwiseNeighbour)) {
+                    drawingSurface.line(...polarToXy(startAngle, innerDistance), ...polarToXy(startAngle, outerDistance));
+                }
+                if (!cell.isLinkedTo(clockwiseNeighbour)) {
+                    drawingSurface.line(...polarToXy(endAngle, innerDistance), ...polarToXy(endAngle, outerDistance));
+                }
+                if (!cell.isLinkedTo(inwardsNeighbour)) {
+                    drawingSurface.arc(cx, cy, innerDistance, startAngle, endAngle);
+                }
+                if (outermostLayer) {
+                    drawingSurface.arc(cx, cy, outerDistance, startAngle, endAngle);
+                }
+            }
+
         });
     };
 

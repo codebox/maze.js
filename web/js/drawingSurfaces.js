@@ -11,6 +11,10 @@ export const drawingSurfaces = {
         function yCoord(y) {
             return y * magnification;
         }
+        function distance(d) {
+            "use strict";
+            return d * magnification;
+        }
         return {
             setSpaceRequirements(requiredWidth, requiredHeight) {
                 magnification = Math.min(width/requiredWidth, height/requiredHeight);
@@ -29,6 +33,11 @@ export const drawingSurfaces = {
                 ctx.beginPath();
                 ctx.moveTo(xCoord(x1), yCoord(y1));
                 ctx.fillRect(xCoord(x1), yCoord(y1), xCoord(x2) - xCoord(x1), xCoord(y2) - xCoord(y1));
+                ctx.stroke();
+            },
+            arc(cx, cy, r, startAngle, endAngle) {
+                ctx.beginPath();
+                ctx.arc(xCoord(cx), yCoord(cy), distance(r), startAngle - Math.PI / 2, endAngle - Math.PI / 2);
                 ctx.stroke();
             }
         };
