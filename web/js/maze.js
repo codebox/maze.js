@@ -298,6 +298,37 @@ function buildHexagonalMaze(config) {
             yOffset3 = 2,
             xOffset = Math.sin(Math.PI / 3);
 
+        drawingSurface.on(EVENT_CLICK, event => {
+            const ty = (event.y / (2 - yOffset1)) % 1;
+            let x,y;
+            const row = Math.floor(event.y / (2 - yOffset1)),
+                xRowBasedAdjustment = (row % 2) * xOffset;
+
+            if (ty <= yOffset1) {
+                // in zig-zag region
+                const tx = Math.abs(xOffset - ((event.x - xRowBasedAdjustment) % (2 * xOffset))),
+                    tty = ty * (2 - yOffset1),
+                    isAboveLine = tx/tty > Math.tan(Math.PI/3);
+                let xYBasedAdjustment;
+                if (isAboveLine) {
+                    xYBasedAdjustment = (event.x - xRowBasedAdjustment) % (2 * xOffset) > xOffset ? -1 : 0;h3rbie
+                } else {
+                    xYBasedAdjustment = (event.x - xRowBasedAdjustment) % (2 * xOffset) > xOffset ? -1 : 0;
+                }
+                x = Math.floor((event.x - xRowBasedAdjustment) / (2 * xOffset)) + xYBasedAdjustment;
+                y=1;
+            } else {
+                // in rectangular region
+                x = Math.floor((event.x - xRowBasedAdjustment) / (2 * xOffset));
+                y = row;
+            }
+            if (x >= 0 && x < config.width && y >= 0 && y < config.height) {
+                eventTarget.trigger(EVENT_CLICK, {
+                    x, y,
+                    shift: event.shift
+                });
+            }
+        });
         drawingSurface.setSpaceRequirements(grid.metadata.width * 2 * xOffset + Math.min(1, grid.metadata.height - 1) * xOffset, grid.metadata.height * yOffset2 + yOffset1);
 
         grid.forEachCell(cell => {
