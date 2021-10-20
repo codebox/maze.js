@@ -200,11 +200,14 @@ function buildTriangularMaze(config) {
             function getYCoord(event) {
                 return Math.floor(event.y / verticalAltitude);
             }
-            eventTarget.trigger(EVENT_CLICK, {
-                x: getXCoord(event),
-                y: getYCoord(event),
-                shift: event.shift
-            });
+            const x = getXCoord(event),
+                y = getYCoord(event);
+
+            if (x >= 0 && x < config.width && y >= 0 && y < config.height) {
+                eventTarget.trigger(EVENT_CLICK, {
+                    x, y, shift: event.shift
+                });
+            }
         });
 
         drawingSurface.setSpaceRequirements(0.5 + grid.metadata.width/2, grid.metadata.height * verticalAltitude);
