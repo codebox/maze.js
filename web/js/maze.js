@@ -309,14 +309,20 @@ function buildHexagonalMaze(config) {
                 const tx = Math.abs(xOffset - ((event.x - xRowBasedAdjustment) % (2 * xOffset))),
                     tty = ty * (2 - yOffset1),
                     isAboveLine = tx/tty > Math.tan(Math.PI/3);
-                let xYBasedAdjustment;
+                let xYBasedAdjustment, yAdjustment;
                 if (isAboveLine) {
-                    xYBasedAdjustment = (event.x - xRowBasedAdjustment) % (2 * xOffset) > xOffset ? -1 : 0;h3rbie
+                    if (xRowBasedAdjustment) {
+                        xYBasedAdjustment = (event.x - xRowBasedAdjustment) % (2 * xOffset) > xOffset ? 1 : 0;
+                    } else {
+                        xYBasedAdjustment = event.x % (2 * xOffset) > xOffset ? 0 : -1;
+                    }
+                    yAdjustment = -1;
                 } else {
-                    xYBasedAdjustment = (event.x - xRowBasedAdjustment) % (2 * xOffset) > xOffset ? -1 : 0;
+                    xYBasedAdjustment = 0;
+                    yAdjustment = 0;
                 }
                 x = Math.floor((event.x - xRowBasedAdjustment) / (2 * xOffset)) + xYBasedAdjustment;
-                y=1;
+                y = row + yAdjustment;
             } else {
                 // in rectangular region
                 x = Math.floor((event.x - xRowBasedAdjustment) / (2 * xOffset));
