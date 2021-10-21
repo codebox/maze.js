@@ -446,9 +446,15 @@ function buildCircularMaze(config) {
                 layer = Math.floor(distanceFromCenter),
                 cellsInThisLayer = cellCounts[layer],
                 anglePerCell = Math.PI * 2 / cellsInThisLayer,
-                angle = (Math.atan2(yDistance, xDistance) + 1.5 * Math.PI) % (Math.PI * 2),
+                angle = (Math.atan2(yDistance, xDistance) + 2.5 * Math.PI) % (Math.PI * 2),
                 cell = Math.floor(angle / anglePerCell);
-            console.log(layer, cell);
+
+            if (cell >= 0 && cell < cellsInThisLayer && layer >= 0 && layer < grid.metadata.layers) {
+                eventTarget.trigger(EVENT_CLICK, {
+                    cell, layer,
+                    shift: event.shift
+                });
+            }
         });
 
         function polarToXy(angle, distance) {
@@ -483,8 +489,8 @@ function buildCircularMaze(config) {
                     drawingSurface.arc(cx, cy, outerDistance, startAngle, endAngle);
                 }
             }
-
         });
+
     };
 
     return grid;

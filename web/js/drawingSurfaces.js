@@ -38,23 +38,42 @@ export const drawingSurfaces = {
             },
             setColour(colour) {
                 ctx.strokeStyle = colour;
+                ctx.fillStyle = colour;
             },
-            line(x1, y1, x2, y2) {
-                ctx.beginPath();
+            line(x1, y1, x2, y2, existingPath = false) {
+                existingPath || ctx.beginPath();
                 ctx.moveTo(xCoord(x1), yCoord(y1));
                 ctx.lineTo(xCoord(x2), yCoord(y2));
-                ctx.stroke();
+                existingPath || ctx.stroke();
             },
-            rectangle(x1, y1, x2, y2) {
-                ctx.beginPath();
+            rectangle(x1, y1, x2, y2, existingPath = false) {
+                existingPath || ctx.beginPath();
                 ctx.moveTo(xCoord(x1), yCoord(y1));
                 ctx.fillRect(xCoord(x1), yCoord(y1), xCoord(x2) - xCoord(x1), xCoord(y2) - xCoord(y1));
-                ctx.stroke();
+                existingPath || ctx.stroke();
             },
-            arc(cx, cy, r, startAngle, endAngle) {
+            arc(cx, cy, r, startAngle, endAngle, counterclockwise = false, existingPath = false) {
+                existingPath || ctx.beginPath();
+                ctx.arc(xCoord(cx), yCoord(cy), distance(r), startAngle - Math.PI / 2, endAngle - Math.PI / 2, counterclockwise);
+                existingPath || ctx.stroke();
+            },
+            fillSegment(cx, cy, smallR, bigR, startAngle, endAngle) {
+                const
+                    innerStartX = cx + smallR * Math.sin(startAngle),
+                    innerStartY = cy - smallR * Math.cos(startAngle),
+                    innerEndX = cx + smallR * Math.sin(endAngle),
+                    innerEndY = cy - smallR * Math.cos(endAngle),
+                    outerStartX = cx + bigR * Math.sin(startAngle),
+                    outerStartY = cy - bigR * Math.cos(startAngle),
+                    outerEndX = cx + bigR * Math.sin(endAngle),
+                    outerEndY = cy - bigR * Math.cos(endAngle);
                 ctx.beginPath();
-                ctx.arc(xCoord(cx), yCoord(cy), distance(r), startAngle - Math.PI / 2, endAngle - Math.PI / 2);
-                ctx.stroke();
+                this.line(innerStartX, innerStartY, outerStartX, outerStartY, true);
+                this.arc(cx, cy, bigR, startAngle, endAngle, false, true);
+                this.line(outerEndX, outerEndY, innerEndX, innerEndY, true);
+                this.arc(cx, cy, smallR, endAngle, startAngle, true, true);
+                ctx.closePath();
+                ctx.fill();
             },
             on(eventName, handler) {
                 eventTarget.on(eventName, handler);
