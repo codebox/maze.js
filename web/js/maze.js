@@ -439,6 +439,18 @@ function buildCircularMaze(config) {
         const cx = grid.metadata.layers,
             cy = grid.metadata.layers;
 
+        drawingSurface.on(EVENT_CLICK, event => {
+            const xDistance = event.x - cx,
+                yDistance = event.y - cy,
+                distanceFromCenter = Math.sqrt(Math.pow(xDistance, 2) + Math.pow(yDistance, 2)),
+                layer = Math.floor(distanceFromCenter),
+                cellsInThisLayer = cellCounts[layer],
+                anglePerCell = Math.PI * 2 / cellsInThisLayer,
+                angle = (Math.atan2(yDistance, xDistance) + 1.5 * Math.PI) % (Math.PI * 2),
+                cell = Math.floor(angle / anglePerCell);
+            console.log(layer, cell);
+        });
+
         function polarToXy(angle, distance) {
             return [cx + distance * Math.sin(angle), cy - distance * Math.cos(angle)];
         }
