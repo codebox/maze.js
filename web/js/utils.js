@@ -9,7 +9,8 @@ export function forEachContiguousPair(array, fn) {
 
 export function buildEventTarget() {
     "use strict";
-    const eventTarget = new EventTarget();
+    const eventTarget = new EventTarget(),
+        handlers = [];
 
     return {
         trigger(eventName, eventData) {
@@ -18,9 +19,20 @@ export function buildEventTarget() {
             eventTarget.dispatchEvent(event);
         },
         on(eventName, eventHandler) {
+            handlers.push({eventName, eventHandler});
             eventTarget.addEventListener(eventName, event => {
                 eventHandler(event.data);
             });
+        },
+        off(eventNameToRemove) {
+            let i = handlers.length;
+            while (i--) {
+                const {eventName, eventHandler} = handlers[i];
+                if (eventName === eventNameToRemove) {
+                    eventTarget.removeEventListener(eventName, eventHandler);
+                    handlers.splice(i, 1);
+                }
+            }
         }
     };
 }

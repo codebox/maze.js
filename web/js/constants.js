@@ -21,4 +21,6 @@ const
     EVENT_MOUSE_OVER = 'mouseOver',
 
     METADATA_VISITED = 'visited',
-    METADATA_SET_ID = 'setId';
+    METADATA_SET_ID = 'setId',
+    METADATA_MAX_DISTANCE = 'maxDistance',
+    METADATA_DISTANCE = 'distance';

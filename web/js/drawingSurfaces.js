@@ -1,7 +1,7 @@
 import {buildEventTarget} from './utils.js';
 
 export const drawingSurfaces = {
-    canvas(grid, config) {
+    canvas(config) {
         const eventTarget = buildEventTarget(),
             {el} = config,
             {width,height} = el,
@@ -46,16 +46,22 @@ export const drawingSurfaces = {
                 ctx.lineTo(xCoord(x2), yCoord(y2));
                 existingPath || ctx.stroke();
             },
-            rectangle(x1, y1, x2, y2, existingPath = false) {
-                existingPath || ctx.beginPath();
-                ctx.moveTo(xCoord(x1), yCoord(y1));
-                ctx.fillRect(xCoord(x1), yCoord(y1), xCoord(x2) - xCoord(x1), xCoord(y2) - xCoord(y1));
-                existingPath || ctx.stroke();
-            },
             arc(cx, cy, r, startAngle, endAngle, counterclockwise = false, existingPath = false) {
                 existingPath || ctx.beginPath();
                 ctx.arc(xCoord(cx), yCoord(cy), distance(r), startAngle - Math.PI / 2, endAngle - Math.PI / 2, counterclockwise);
                 existingPath || ctx.stroke();
+            },
+            fillPolygon(...xyPoints) {
+                ctx.beginPath();
+                xyPoints.forEach(({x,y}, i) => {
+                    if (i) {
+                        ctx.lineTo(xCoord(x), yCoord(y));
+                    } else {
+                        ctx.moveTo(xCoord(x), yCoord(y));
+                    }
+                });
+                ctx.closePath();
+                ctx.fill();
             },
             fillSegment(cx, cy, smallR, bigR, startAngle, endAngle) {
                 const
@@ -80,18 +86,33 @@ export const drawingSurfaces = {
             }
         };
     },
-    svg(grid, config) {
+    svg(config) {
         const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
-        const {el} = config,
+        const eventTarget = buildEventTarget(),
+            {el} = config,
             width = el.clientWidth,
             height = el.clientHeight;
         let magnification = 1, colour = 'black';
 
+        el.addEventListener('click', event => {
+            eventTarget.trigger(EVENT_CLICK, {
+                x: invXCoord(event.offsetX),
+                y: invYCoord(event.offsetY),
+                shift: event.shiftKey
+            });
+        });
+
         function xCoord(x) {
             return x * magnification;
         }
+        function invXCoord(x) {
+            return x / magnification;
+        }
         function yCoord(y) {
             return y * magnification;
+        }
+        function invYCoord(y) {
+            return y / magnification;
         }
         function distance(d) {
             return d * magnification;
@@ -117,7 +138,38 @@ export const drawingSurfaces = {
                 elLine.setAttribute('stroke', colour);
                 el.appendChild(elLine);
             },
-            rectangle(x1, y1, x2, y2) {
+            fillPolygon(...xyPoints) {
+                const elLine = document.createElementNS(SVG_NAMESPACE, 'polygon'),
+                    coordPairs = [];
+                xyPoints.forEach(({x,y}, i) => {
+                    coordPairs.push(`${xCoord(x)},${yCoord(y)}`);
+                });
+                elLine.setAttribute('points', coordPairs.join(' '));
+                elLine.setAttribute('fill', colour);
+                el.appendChild(elLine);
+            },
+            fillSegment(cx, cy, smallR, bigR, startAngle, endAngle) {
+                const
+                    innerStartX = xCoord(cx + smallR * Math.sin(startAngle)),
+                    innerStartY = yCoord(cy - smallR * Math.cos(startAngle)),
+                    innerEndX = xCoord(cx + smallR * Math.sin(endAngle)),
+                    innerEndY = yCoord(cy - smallR * Math.cos(endAngle)),
+                    outerStartX = xCoord(cx + bigR * Math.sin(startAngle)),
+                    outerStartY = yCoord(cy - bigR * Math.cos(startAngle)),
+                    outerEndX = xCoord(cx + bigR * Math.sin(endAngle)),
+                    outerEndY = yCoord(cy - bigR * Math.cos(endAngle)),
+                    isLargeArc = endAngle - startAngle > Math.PI/2,
+                    elPath = document.createElementNS(SVG_NAMESPACE, 'path'),
+                    d = `        
+                        M ${innerStartX} ${innerStartY} ${outerStartX} ${outerStartY}
+                        A ${distance(bigR)} ${distance(bigR)} 0 ${isLargeArc ? "1" : "0"} 1 ${outerEndX} ${outerEndY}
+                        L ${innerEndX} ${innerEndY}
+                        A ${distance(smallR)} ${distance(smallR)} 0 ${isLargeArc ? "1" : "0"} 0 ${innerStartX} ${innerStartY}
+                    `;
+
+                elPath.setAttribute('d', d);
+                elPath.setAttribute('fill', colour);
+                el.appendChild(elPath);
 
             },
             arc(cx, cy, r, startAngle, endAngle) {
@@ -133,7 +185,7 @@ export const drawingSurfaces = {
                 el.appendChild(elPath);
             },
             on(eventName, handler) {
-                eventTarget.addEventListener(eventName, handler);
+                eventTarget.on(eventName, handler);
             }
         };
     }

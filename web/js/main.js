@@ -4,18 +4,19 @@ import {buildRandom} from './random.js';
 
 const random = buildRandom();
 const SIZE=30;
-const triangleMaze = buildMaze({style:'triangle', width:SIZE, height:SIZE, algorithm:'recursiveBacktrack', random});
-const squareMaze = buildMaze({style:'square', width:SIZE, height:SIZE, algorithm:'recursiveBacktrack', random});
-const hexagonMaze = buildMaze({style:'hexagon', width:3, height:3, algorithm:'recursiveBacktrack', random});
-const circularMaze = buildMaze({style:'circle', layers:3, algorithm:'recursiveBacktrack', random});
+// const drawingSurface = drawingSurfaces.canvas({el: document.getElementById('canvas')});
+const drawingSurface = drawingSurfaces.svg({el: document.getElementById('svg')});
 
-const maze = circularMaze;
-const canvasDrawingSurface = drawingSurfaces.canvas(maze, {el: document.getElementById('canvas')});
-    // svgDrawingSurface = drawingSurfaces.svg(maze, {el: document.getElementById('svg')});
+// const maze = buildMaze({style:'triangle', width:SIZE, height:SIZE, algorithm:'recursiveBacktrack', random, drawingSurface});
+// const maze = buildMaze({style:'square', width:SIZE, height:SIZE, algorithm:'recursiveBacktrack', random, drawingSurface});
+// const maze = buildMaze({style:'hexagon', width:SIZE, height:SIZE, algorithm:'recursiveBacktrack', random, drawingSurface});
+const maze = buildMaze({style:'circle', layers:20, algorithm:'recursiveBacktrack', random, drawingSurface});
 
 // maze.render(svgDrawingSurface);
-maze.render(canvasDrawingSurface);
+maze.render();
 
 maze.on(EVENT_CLICK, event => {
     console.log('click', event);
-})
+    maze.findDistancesFrom(event.coords);
+    maze.render();
+});

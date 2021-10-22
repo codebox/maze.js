@@ -76,13 +76,56 @@ function buildBaseGrid(config) {
         },
         on(eventName, handler) {
             eventTarget.on(eventName, handler);
+        },
+        findDistancesFrom(...coords) {
+            this.clearDistances();
+            const startCell = this.getCellByCoordinates(...coords);
+            startCell.metadata[METADATA_DISTANCE] = 0;
+            const frontier = [startCell];
+            let maxDistance = 0, maxDistancePoint;
+            while(frontier.length) {
+                const next = frontier.shift(),
+                    frontierDistance = next.metadata[METADATA_DISTANCE];
+                const linkedUndistancedNeighbours = Object.values(next.neighbours)
+                    .filter(neighbour => next.isLinkedTo(neighbour))
+                    .filter(neighbour => neighbour.metadata[METADATA_DISTANCE] === undefined);
+
+                linkedUndistancedNeighbours.forEach(neighbour => {
+                    neighbour.metadata[METADATA_DISTANCE] = frontierDistance + 1;
+                });
+                frontier.push(...linkedUndistancedNeighbours);
+                if (linkedUndistancedNeighbours.length) {
+                    if (frontierDistance >= maxDistance) {
+                        maxDistancePoint = linkedUndistancedNeighbours[0];
+                    }
+                    maxDistance = Math.max(frontierDistance+1, maxDistance);
+                }
+            }
+            this.metadata[METADATA_MAX_DISTANCE] = maxDistance;
+        },
+        clearDistances() {
+            this.forEachCell(cell => delete cell.metadata[METADATA_DISTANCE]);
+            delete this.metadata[METADATA_MAX_DISTANCE];
         }
     };
 }
 
+function getDistanceColour(distance, maxDistance) {
+    return `hsl(${Math.floor(100 - 100 * distance/maxDistance)}, 100%, 50%)`;
+}
+
 function buildSquareMaze(config) {
     "use strict";
-    const grid = buildBaseGrid(config);
+    const {drawingSurface} = config,
+        grid = buildBaseGrid(config);
+
+    drawingSurface.on(EVENT_CLICK, event => {
+        eventTarget.trigger(EVENT_CLICK, {
+            coords: [Math.floor(event.x), Math.floor(event.y)],
+            shift: event.shift
+        });
+    });
+    drawingSurface.setSpaceRequirements(grid.metadata.width, grid.metadata.height);
 
     grid.isSquare = true;
     grid.initialise = function() {
@@ -106,15 +149,16 @@ function buildSquareMaze(config) {
         }
     };
 
-    grid.render = function(drawingSurface) {
-        drawingSurface.on(EVENT_CLICK, event => {
-            eventTarget.trigger(EVENT_CLICK, {
-                x: Math.floor(event.x),
-                y: Math.floor(event.y),
-                shift: event.shift
-            });
-        });
-        drawingSurface.setSpaceRequirements(grid.metadata.width, grid.metadata.height);
+    grid.render = function() {
+        function drawFilledSquare(p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y, distance) {
+            if (distance === undefined) {
+                drawingSurface.setColour('white');
+            } else {
+                drawingSurface.setColour(getDistanceColour(distance, grid.metadata[METADATA_MAX_DISTANCE]));
+            }
+            drawingSurface.fillPolygon({x: p1x, y:p1y}, {x: p2x, y:p2y}, {x: p3x, y:p3y}, {x: p4x, y:p4y});
+            drawingSurface.setColour('black');
+        }
 
         grid.forEachCell(cell => {
             "use strict";
@@ -123,6 +167,8 @@ function buildSquareMaze(config) {
                 southNeighbour = cell.neighbours[DIRECTION_SOUTH],
                 eastNeighbour = cell.neighbours[DIRECTION_EAST],
                 westNeighbour = cell.neighbours[DIRECTION_WEST];
+
+            drawFilledSquare(x, y, x+1, y, x+1, y+1, x, y+1, cell.metadata[METADATA_DISTANCE]);
 
             if (!northNeighbour || !cell.isLinkedTo(northNeighbour)) {
                 drawingSurface.line(x,y,x+1,y);
@@ -144,7 +190,47 @@ function buildSquareMaze(config) {
 
 function buildTriangularMaze(config) {
     "use strict";
-    const grid = buildBaseGrid(config);
+    const {drawingSurface} = config,
+        grid = buildBaseGrid(config),
+        verticalAltitude = Math.sin(Math.PI/3);
+
+    drawingSurface.on(EVENT_CLICK, event => {
+        function getXCoord(event) {
+            const xDivision = 2 * event.x,
+                y = getYCoord(event);
+
+            if ((Math.floor(xDivision) + y) % 2) {
+                const tx = 1 - (xDivision % 1),
+                    ty = (event.y / verticalAltitude) % 1;
+                if (tx > ty) {
+                    return Math.floor(xDivision) - 1;
+                } else {
+                    return Math.floor(xDivision);
+                }
+            } else {
+                const tx = xDivision % 1,
+                    ty = (event.y / verticalAltitude) % 1;
+                if (tx > ty) {
+                    return Math.floor(xDivision);
+                } else {
+                    return Math.floor(xDivision) - 1;
+                }
+            }
+        }
+        function getYCoord(event) {
+            return Math.floor(event.y / verticalAltitude);
+        }
+        const x = getXCoord(event),
+            y = getYCoord(event);
+
+        if (x >= 0 && x < config.width && y >= 0 && y < config.height) {
+            eventTarget.trigger(EVENT_CLICK, {
+                coords: [x, y],
+                shift: event.shift
+            });
+        }
+    });
+    drawingSurface.setSpaceRequirements(0.5 + grid.metadata.width/2, grid.metadata.height * verticalAltitude);
 
     function hasBaseOnSouthSide(x,y) {
         return (x+y) % 2;
@@ -171,46 +257,16 @@ function buildTriangularMaze(config) {
         }
     };
 
-    grid.render = function(drawingSurface) {
-        const verticalAltitude = Math.sin(Math.PI/3);
-
-        drawingSurface.on(EVENT_CLICK, event => {
-            function getXCoord(event) {
-                const xDivision = 2 * event.x,
-                    y = getYCoord(event);
-
-                if ((Math.floor(xDivision) + y) % 2) {
-                    const tx = 1 - (xDivision % 1),
-                        ty = (event.y / verticalAltitude) % 1;
-                    if (tx > ty) {
-                        return Math.floor(xDivision) - 1;
-                    } else {
-                        return Math.floor(xDivision);
-                    }
-                } else {
-                    const tx = xDivision % 1,
-                        ty = (event.y / verticalAltitude) % 1;
-                    if (tx > ty) {
-                        return Math.floor(xDivision);
-                    } else {
-                        return Math.floor(xDivision) - 1;
-                    }
-                }
+    grid.render = function() {
+        function drawFilledTriangle(p1x, p1y, p2x, p2y, p3x, p3y, distance) {
+            if (distance === undefined) {
+                drawingSurface.setColour('white');
+            } else {
+                drawingSurface.setColour(getDistanceColour(distance, grid.metadata[METADATA_MAX_DISTANCE]));
             }
-            function getYCoord(event) {
-                return Math.floor(event.y / verticalAltitude);
-            }
-            const x = getXCoord(event),
-                y = getYCoord(event);
-
-            if (x >= 0 && x < config.width && y >= 0 && y < config.height) {
-                eventTarget.trigger(EVENT_CLICK, {
-                    x, y, shift: event.shift
-                });
-            }
-        });
-
-        drawingSurface.setSpaceRequirements(0.5 + grid.metadata.width/2, grid.metadata.height * verticalAltitude);
+            drawingSurface.fillPolygon({x: p1x, y:p1y}, {x: p2x, y:p2y}, {x: p3x, y:p3y});
+            drawingSurface.setColour('black');
+        }
 
         grid.forEachCell(cell => {
             "use strict";
@@ -227,6 +283,8 @@ function buildTriangularMaze(config) {
                     p2y = p1y - verticalAltitude,
                     p3x = p1x + 1,
                     p3y = p1y;
+
+                drawFilledTriangle(p1x, p1y, p2x, p2y, p3x, p3y, cell.metadata[METADATA_DISTANCE]);
                 if (!southNeighbour || !cell.isLinkedTo(southNeighbour)) {
                     drawingSurface.line(p1x, p1y, p3x, p3y);
                 }
@@ -244,6 +302,8 @@ function buildTriangularMaze(config) {
                     p2y = p1y + verticalAltitude,
                     p3x = p1x + 1,
                     p3y = p1y;
+
+                drawFilledTriangle(p1x, p1y, p2x, p2y, p3x, p3y, cell.metadata[METADATA_DISTANCE]);
                 if (!northNeighbour || !cell.isLinkedTo(northNeighbour)) {
                     drawingSurface.line(p1x, p1y, p3x, p3y);
                 }
@@ -262,7 +322,53 @@ function buildTriangularMaze(config) {
 
 function buildHexagonalMaze(config) {
     "use strict";
-    const grid = buildBaseGrid(config);
+    const {drawingSurface} = config,
+        grid = buildBaseGrid(config);
+
+    const yOffset1 = Math.cos(Math.PI / 3),
+        yOffset2 = 2 - yOffset1,
+        yOffset3 = 2,
+        xOffset = Math.sin(Math.PI / 3);
+
+    drawingSurface.setSpaceRequirements(grid.metadata.width * 2 * xOffset + Math.min(1, grid.metadata.height - 1) * xOffset, grid.metadata.height * yOffset2 + yOffset1);
+
+    drawingSurface.on(EVENT_CLICK, event => {
+        const ty = (event.y / (2 - yOffset1)) % 1;
+        let x,y;
+        const row = Math.floor(event.y / (2 - yOffset1)),
+            xRowBasedAdjustment = (row % 2) * xOffset;
+
+        if (ty <= yOffset1) {
+            // in zig-zag region
+            const tx = Math.abs(xOffset - ((event.x - xRowBasedAdjustment) % (2 * xOffset))),
+                tty = ty * (2 - yOffset1),
+                isAboveLine = tx/tty > Math.tan(Math.PI/3);
+            let xYBasedAdjustment, yAdjustment;
+            if (isAboveLine) {
+                if (xRowBasedAdjustment) {
+                    xYBasedAdjustment = (event.x - xRowBasedAdjustment) % (2 * xOffset) > xOffset ? 1 : 0;
+                } else {
+                    xYBasedAdjustment = event.x % (2 * xOffset) > xOffset ? 0 : -1;
+                }
+                yAdjustment = -1;
+            } else {
+                xYBasedAdjustment = 0;
+                yAdjustment = 0;
+            }
+            x = Math.floor((event.x - xRowBasedAdjustment) / (2 * xOffset)) + xYBasedAdjustment;
+            y = row + yAdjustment;
+        } else {
+            // in rectangular region
+            x = Math.floor((event.x - xRowBasedAdjustment) / (2 * xOffset));
+            y = row;
+        }
+        if (x >= 0 && x < config.width && y >= 0 && y < config.height) {
+            eventTarget.trigger(EVENT_CLICK, {
+                coords: [x, y],
+                shift: event.shift
+            });
+        }
+    });
 
     grid.isSquare = false;
     grid.initialise = function() {
@@ -292,50 +398,16 @@ function buildHexagonalMaze(config) {
         }
     };
 
-    grid.render = function(drawingSurface) {
-        const yOffset1 = Math.cos(Math.PI / 3),
-            yOffset2 = 2 - yOffset1,
-            yOffset3 = 2,
-            xOffset = Math.sin(Math.PI / 3);
-
-        drawingSurface.on(EVENT_CLICK, event => {
-            const ty = (event.y / (2 - yOffset1)) % 1;
-            let x,y;
-            const row = Math.floor(event.y / (2 - yOffset1)),
-                xRowBasedAdjustment = (row % 2) * xOffset;
-
-            if (ty <= yOffset1) {
-                // in zig-zag region
-                const tx = Math.abs(xOffset - ((event.x - xRowBasedAdjustment) % (2 * xOffset))),
-                    tty = ty * (2 - yOffset1),
-                    isAboveLine = tx/tty > Math.tan(Math.PI/3);
-                let xYBasedAdjustment, yAdjustment;
-                if (isAboveLine) {
-                    if (xRowBasedAdjustment) {
-                        xYBasedAdjustment = (event.x - xRowBasedAdjustment) % (2 * xOffset) > xOffset ? 1 : 0;
-                    } else {
-                        xYBasedAdjustment = event.x % (2 * xOffset) > xOffset ? 0 : -1;
-                    }
-                    yAdjustment = -1;
-                } else {
-                    xYBasedAdjustment = 0;
-                    yAdjustment = 0;
-                }
-                x = Math.floor((event.x - xRowBasedAdjustment) / (2 * xOffset)) + xYBasedAdjustment;
-                y = row + yAdjustment;
+    grid.render = function() {
+        function drawFilledHexagon(p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y, p5x, p5y, p6x, p6y, distance) {
+            if (distance === undefined) {
+                drawingSurface.setColour('white');
             } else {
-                // in rectangular region
-                x = Math.floor((event.x - xRowBasedAdjustment) / (2 * xOffset));
-                y = row;
+                drawingSurface.setColour(getDistanceColour(distance, grid.metadata[METADATA_MAX_DISTANCE]));
             }
-            if (x >= 0 && x < config.width && y >= 0 && y < config.height) {
-                eventTarget.trigger(EVENT_CLICK, {
-                    x, y,
-                    shift: event.shift
-                });
-            }
-        });
-        drawingSurface.setSpaceRequirements(grid.metadata.width * 2 * xOffset + Math.min(1, grid.metadata.height - 1) * xOffset, grid.metadata.height * yOffset2 + yOffset1);
+            drawingSurface.fillPolygon({x: p1x, y:p1y}, {x: p2x, y:p2y}, {x: p3x, y:p3y}, {x: p4x, y:p4y}, {x: p5x, y:p5y}, {x: p6x, y:p6y});
+            drawingSurface.setColour('black');
+        }
 
         grid.forEachCell(cell => {
             "use strict";
@@ -361,6 +433,7 @@ function buildHexagonalMaze(config) {
                 p6x = p3x,
                 p6y = y * yOffset2;
 
+            drawFilledHexagon(p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y, p5x, p5y, p6x, p6y, cell.metadata[METADATA_DISTANCE]);
             if (!eastNeighbour || !cell.isLinkedTo(eastNeighbour)) {
                 drawingSurface.line(p4x, p4y, p5x, p5y);
             }
@@ -387,7 +460,32 @@ function buildHexagonalMaze(config) {
 
 function buildCircularMaze(config) {
     "use strict";
+    const grid = buildBaseGrid(config),
+        cellCounts = cellCountsForLayers(config.layers),
+        {drawingSurface} = config;
 
+    drawingSurface.setSpaceRequirements(grid.metadata.layers * 2, grid.metadata.layers * 2,);
+
+    const cx = grid.metadata.layers,
+        cy = grid.metadata.layers;
+
+    drawingSurface.on(EVENT_CLICK, event => {
+        const xDistance = event.x - cx,
+            yDistance = event.y - cy,
+            distanceFromCenter = Math.sqrt(Math.pow(xDistance, 2) + Math.pow(yDistance, 2)),
+            layer = Math.floor(distanceFromCenter),
+            cellsInThisLayer = cellCounts[layer],
+            anglePerCell = Math.PI * 2 / cellsInThisLayer,
+            angle = (Math.atan2(yDistance, xDistance) + 2.5 * Math.PI) % (Math.PI * 2),
+            cell = Math.floor(angle / anglePerCell);
+
+        if (cell >= 0 && cell < cellsInThisLayer && layer >= 0 && layer < grid.metadata.layers) {
+            eventTarget.trigger(EVENT_CLICK, {
+                coords: [layer, cell],
+                shift: event.shift
+            });
+        }
+    });
     function cellCountsForLayers(layers) {
         const counts = [1], rowRadius = 1 / layers;
         while (counts.length < layers) {
@@ -398,9 +496,6 @@ function buildCircularMaze(config) {
         }
         return counts;
     }
-
-    const grid = buildBaseGrid(config),
-        cellCounts = cellCountsForLayers(config.layers);
 
     grid.isSquare = false;
     grid.initialise = function() {
@@ -433,32 +528,18 @@ function buildCircularMaze(config) {
         }
     };
 
-    grid.render = function(drawingSurface) {
-        drawingSurface.setSpaceRequirements(grid.metadata.layers * 2, grid.metadata.layers * 2,);
-
-        const cx = grid.metadata.layers,
-            cy = grid.metadata.layers;
-
-        drawingSurface.on(EVENT_CLICK, event => {
-            const xDistance = event.x - cx,
-                yDistance = event.y - cy,
-                distanceFromCenter = Math.sqrt(Math.pow(xDistance, 2) + Math.pow(yDistance, 2)),
-                layer = Math.floor(distanceFromCenter),
-                cellsInThisLayer = cellCounts[layer],
-                anglePerCell = Math.PI * 2 / cellsInThisLayer,
-                angle = (Math.atan2(yDistance, xDistance) + 2.5 * Math.PI) % (Math.PI * 2),
-                cell = Math.floor(angle / anglePerCell);
-
-            if (cell >= 0 && cell < cellsInThisLayer && layer >= 0 && layer < grid.metadata.layers) {
-                eventTarget.trigger(EVENT_CLICK, {
-                    cell, layer,
-                    shift: event.shift
-                });
-            }
-        });
-
+    grid.render = function() {
         function polarToXy(angle, distance) {
             return [cx + distance * Math.sin(angle), cy - distance * Math.cos(angle)];
+        }
+        function drawFilledSegment(smallR, bigR, startAngle, endAngle, distance) {
+            if (distance === undefined) {
+                drawingSurface.setColour('white');
+            } else {
+                drawingSurface.setColour(getDistanceColour(distance, grid.metadata[METADATA_MAX_DISTANCE]));
+            }
+            drawingSurface.fillSegment(cx, cy, smallR, bigR, startAngle, endAngle);
+            drawingSurface.setColour('black');
         }
 
         grid.forEachCell(cell => {
@@ -474,6 +555,8 @@ function buildCircularMaze(config) {
                 clockwiseNeighbour = cell.neighbours[DIRECTION_CLOCKWISE],
                 anticlockwiseNeighbour = cell.neighbours[DIRECTION_ANTICLOCKWISE],
                 inwardsNeighbour = cell.neighbours[DIRECTION_INWARDS];
+
+            drawFilledSegment(l, l + 1, startAngle, endAngle, cell.metadata[METADATA_DISTANCE]);
 
             if (l > 0) {
                 if (!cell.isLinkedTo(anticlockwiseNeighbour)) {
