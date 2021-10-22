@@ -23,4 +23,5 @@ const
     METADATA_VISITED = 'visited',
     METADATA_SET_ID = 'setId',
     METADATA_MAX_DISTANCE = 'maxDistance',
-    METADATA_DISTANCE = 'distance';
+    METADATA_DISTANCE = 'distance',
+    METADATA_PATH = 'path';

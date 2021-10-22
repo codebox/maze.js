@@ -77,6 +77,25 @@ function buildBaseGrid(config) {
         on(eventName, handler) {
             eventTarget.on(eventName, handler);
         },
+        findPathBetween(fromCoords, toCoords) {
+            this.findDistancesFrom(toCoords.x, toCoords.y);
+            let currentCell = this.getCellByCoordinates(fromCoords.x, fromCoords.y),
+                endCell = this.getCellByCoordinates(toCoords.x, toCoords.y);
+
+            const path = [];
+
+            path.push(currentCell.coords);
+            while(currentCell !== endCell) {
+                const currentDistance = currentCell.metadata[METADATA_DISTANCE],
+                    nextCell = Object.values(currentCell.neighbours)
+                        .filter(neighbour => currentCell.isLinkedTo(neighbour))
+                        .find(neighbour => (neighbour.metadata || {})[METADATA_DISTANCE] === currentDistance - 1);
+                path.push(nextCell.coords);
+                currentCell = nextCell;
+            }
+            this.metadata[METADATA_PATH] = path;
+            this.clearDistances();
+        },
         findDistancesFrom(...coords) {
             this.clearDistances();
             const startCell = this.getCellByCoordinates(...coords);
@@ -183,6 +202,24 @@ function buildSquareMaze(config) {
                 drawingSurface.line(x,y,x,y+1);
             }
         });
+
+        const path = grid.metadata[METADATA_PATH];
+        if (path) {
+            const LINE_OFFSET = 0.5;
+            let previousCoords;
+            drawingSurface.setColour('blue');
+            path.forEach((currentCoords, i) => {
+                if (i) {
+                    const x1 = previousCoords[0] + LINE_OFFSET,
+                        y1 = previousCoords[1] + LINE_OFFSET,
+                        x2 = currentCoords[0] + LINE_OFFSET,
+                        y2 = currentCoords[1] + LINE_OFFSET;
+                    drawingSurface.line(x1, y1, x2, y2);
+                }
+                previousCoords = currentCoords;
+            });
+            drawingSurface.setColour('black');
+        }
     };
 
     return grid;
