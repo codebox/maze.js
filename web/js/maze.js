@@ -295,13 +295,42 @@ function buildTriangularMaze(config) {
     };
 
     grid.render = function() {
-        function drawFilledTriangle(p1x, p1y, p2x, p2y, p3x, p3y, distance) {
-            if (distance === undefined) {
-                drawingSurface.setColour('white');
-            } else {
-                drawingSurface.setColour(getDistanceColour(distance, grid.metadata[METADATA_MAX_DISTANCE]));
-            }
+        function drawFilledTriangle(p1x, p1y, p2x, p2y, p3x, p3y, colour) {
+            drawingSurface.setColour(colour);
             drawingSurface.fillPolygon({x: p1x, y:p1y}, {x: p2x, y:p2y}, {x: p3x, y:p3y});
+            drawingSurface.setColour('black');
+        }
+
+        function getCornerCoords(x, y) {
+            let p1x, p1y, p2x, p2y, p3x, p3y;
+
+            if (hasBaseOnSouthSide(x, y)) {
+                p1x = x/2;
+                p1y = (y+1) * verticalAltitude;
+                p2x = (x+1)/2;
+                p2y = p1y - verticalAltitude;
+                p3x = p1x + 1;
+                p3y = p1y;
+
+            } else {
+                p1x = x/2;
+                p1y = y * verticalAltitude;
+                p2x = (x+1)/2;
+                p2y = p1y + verticalAltitude;
+                p3x = p1x + 1;
+                p3y = p1y
+            }
+            return [p1x, p1y, p2x, p2y, p3x, p3y];
+        }
+
+        const path = grid.metadata[METADATA_PATH];
+        if (path) {
+            let previousCoords;
+            drawingSurface.setColour('blue');
+            path.forEach((currentCoords, i) => {
+                drawFilledTriangle(...getCornerCoords(...currentCoords), '#006BB7');
+                previousCoords = currentCoords;
+            });
             drawingSurface.setColour('black');
         }
 
@@ -313,45 +342,27 @@ function buildTriangularMaze(config) {
                 eastNeighbour = cell.neighbours[DIRECTION_EAST],
                 westNeighbour = cell.neighbours[DIRECTION_WEST];
 
-            if (hasBaseOnSouthSide(x, y)) {
-                const p1x = x/2,
-                    p1y = (y+1) * verticalAltitude,
-                    p2x = (x+1)/2,
-                    p2y = p1y - verticalAltitude,
-                    p3x = p1x + 1,
-                    p3y = p1y;
+            const [p1x, p1y, p2x, p2y, p3x, p3y] = getCornerCoords(x, y),
+                northOrSouthNeighbour = hasBaseOnSouthSide(x, y) ? southNeighbour : northNeighbour;
 
-                drawFilledTriangle(p1x, p1y, p2x, p2y, p3x, p3y, cell.metadata[METADATA_DISTANCE]);
-                if (!southNeighbour || !cell.isLinkedTo(southNeighbour)) {
-                    drawingSurface.line(p1x, p1y, p3x, p3y);
-                }
-                if (!eastNeighbour || !cell.isLinkedTo(eastNeighbour)) {
-                    drawingSurface.line(p2x, p2y, p3x, p3y);
-                }
-                if (!westNeighbour || !cell.isLinkedTo(westNeighbour)) {
-                    drawingSurface.line(p1x, p1y, p2x, p2y);
-                }
+            if (!path) {
+                const distance = cell.metadata[METADATA_DISTANCE],
+                    colour = (distance === undefined) ? 'white' : getDistanceColour(distance, grid.metadata[METADATA_MAX_DISTANCE]);
+                drawFilledTriangle(p1x, p1y, p2x, p2y, p3x, p3y, colour);
 
-            } else {
-                const p1x = x/2,
-                    p1y = y * verticalAltitude,
-                    p2x = (x+1)/2,
-                    p2y = p1y + verticalAltitude,
-                    p3x = p1x + 1,
-                    p3y = p1y;
+            }
 
-                drawFilledTriangle(p1x, p1y, p2x, p2y, p3x, p3y, cell.metadata[METADATA_DISTANCE]);
-                if (!northNeighbour || !cell.isLinkedTo(northNeighbour)) {
-                    drawingSurface.line(p1x, p1y, p3x, p3y);
-                }
-                if (!eastNeighbour || !cell.isLinkedTo(eastNeighbour)) {
-                    drawingSurface.line(p2x, p2y, p3x, p3y);
-                }
-                if (!westNeighbour || !cell.isLinkedTo(westNeighbour)) {
-                    drawingSurface.line(p1x, p1y, p2x, p2y);
-                }
+            if (!northOrSouthNeighbour || !cell.isLinkedTo(northOrSouthNeighbour)) {
+                drawingSurface.line(p1x, p1y, p3x, p3y);
+            }
+            if (!eastNeighbour || !cell.isLinkedTo(eastNeighbour)) {
+                drawingSurface.line(p2x, p2y, p3x, p3y);
+            }
+            if (!westNeighbour || !cell.isLinkedTo(westNeighbour)) {
+                drawingSurface.line(p1x, p1y, p2x, p2y);
             }
         });
+
     };
 
     return grid;
