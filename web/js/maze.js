@@ -1,5 +1,14 @@
-import {algorithms} from './algorithms.js';
 import {buildEventTarget} from './utils.js';
+import {
+    METADATA_DISTANCE, METADATA_PATH, METADATA_MAX_DISTANCE,
+    EVENT_CLICK,
+    DIRECTION_NORTH, DIRECTION_SOUTH, DIRECTION_EAST, DIRECTION_WEST,
+    DIRECTION_NORTH_WEST, DIRECTION_NORTH_EAST, DIRECTION_SOUTH_WEST, DIRECTION_SOUTH_EAST,
+    DIRECTION_CLOCKWISE, DIRECTION_ANTICLOCKWISE,
+    DIRECTION_INWARDS,
+    CELL_BACKGROUND_COLOUR, WALL_COLOUR, PATH_COLOUR
+} from './constants.js';
+
 
 const eventTarget = buildEventTarget();
 
@@ -133,7 +142,7 @@ function getDistanceColour(distance, maxDistance) {
     return `hsl(${Math.floor(100 - 100 * distance/maxDistance)}, 100%, 50%)`;
 }
 
-function buildSquareMaze(config) {
+export function buildSquareGrid(config) {
     "use strict";
     const {drawingSurface} = config,
         grid = buildBaseGrid(config);
@@ -225,7 +234,7 @@ function buildSquareMaze(config) {
     return grid;
 }
 
-function buildTriangularMaze(config) {
+export function buildTriangularGrid(config) {
     "use strict";
     const {drawingSurface} = config,
         grid = buildBaseGrid(config),
@@ -331,6 +340,8 @@ function buildTriangularMaze(config) {
                 const [p1x, p1y, p2x, p2y, p3x, p3y] = getCornerCoords(currentCoords[0], currentCoords[1]),
                     centerX = (p1x + p2x + p3x) / 3,
                     centerY = (p1y + p2y + p3y) / 3;
+                    // centerX = (Math.max(p1x, p2x, p3x) + Math.min(p1x, p2x, p3x)) / 2,
+                    // centerY = (Math.max(p1y, p2y, p3y) + Math.min(p1y, p2y, p3y)) / 2;
                 if (i) {
                     drawingSurface.line(previousX, previousY, centerX, centerY);
                 }
@@ -373,7 +384,7 @@ function buildTriangularMaze(config) {
     return grid;
 }
 
-function buildHexagonalMaze(config) {
+export function buildHexagonalGrid(config) {
     "use strict";
     const {drawingSurface} = config,
         grid = buildBaseGrid(config);
@@ -534,7 +545,7 @@ function buildHexagonalMaze(config) {
     return grid;
 }
 
-function buildCircularMaze(config) {
+export function buildCircularGrid(config) {
     "use strict";
     const grid = buildBaseGrid(config),
         cellCounts = cellCountsForLayers(config.layers),
@@ -887,20 +898,20 @@ function buildCircularMaze(config) {
     return grid;
 }
 
-const shapeLookup = {
-    [SHAPE_SQUARE]: buildSquareMaze,
-    [SHAPE_TRIANGLE]: buildTriangularMaze,
-    [SHAPE_HEXAGON]: buildHexagonalMaze,
-    [SHAPE_CIRCLE]: buildCircularMaze
-};
 
-export function buildMaze(config) {
-    "use strict";
-    const
-        algorithm = algorithms[config.algorithm],
-        grid = shapeLookup[config.style](config);
-    grid.initialise();
-    algorithm.fn(grid, config);
-
-    return grid;
-}
+//
+// export function buildGrid(config) {
+//     "use strict";
+//     const grid = shapeLookup[config.style](config);
+//     grid.initialise();
+//     return grid;
+// }
+//
+// export function buildMaze(grid, config) {
+//     "use strict";
+//     const
+//         algorithm = algorithms[config.algorithm];
+//         algorithm.fn(grid, config);
+//
+//     return grid;
+// }

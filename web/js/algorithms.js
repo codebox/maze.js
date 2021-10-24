@@ -1,4 +1,9 @@
 import {forEachContiguousPair} from './utils.js';
+import {
+    ALGORITHM_BINARY_TREE, ALGORITHM_SIDEWINDER, ALGORITHM_ALDOUS_BRODER, ALGORITHM_WILSON, ALGORITHM_HUNT_AND_KILL, ALGORITHM_RECURSIVE_BACKTRACK, ALGORITHM_KRUSKAL,
+    METADATA_VISITED, METADATA_SET_ID,
+    DIRECTION_EAST, DIRECTION_SOUTH
+} from './constants.js';
 
 
 function markAsVisited(cell) {
@@ -14,7 +19,7 @@ function isUnvisited(cell) {
 }
 
 export const algorithms = {
-    'binaryTree': {
+    [ALGORITHM_BINARY_TREE]: {
         metadata: {}, // description, maskable, unsupported shapes
         fn(grid, config) {
             "use strict";
@@ -40,7 +45,7 @@ export const algorithms = {
             });
         }
     },
-    'sidewinder': {
+    [ALGORITHM_SIDEWINDER]: {
         metadata: {},
         fn(grid, config) {
             "use strict";
@@ -72,7 +77,7 @@ export const algorithms = {
             }
         }
     },
-    'aldousBroder': {
+    [ALGORITHM_ALDOUS_BRODER]: {
         metadata: {},
         fn(grid, config) {
             "use strict";
@@ -100,7 +105,7 @@ export const algorithms = {
 
         }
     },
-    'wilson': {
+    [ALGORITHM_WILSON]: {
         metadata: {},
         fn(grid, config) {
             "use strict";
@@ -136,7 +141,7 @@ export const algorithms = {
             }
         }
     },
-    'huntAndKill': {
+    [ALGORITHM_HUNT_AND_KILL]: {
         metadata: {},
         fn(grid, config) {
             "use strict";
@@ -165,7 +170,7 @@ export const algorithms = {
             }
         }
     },
-    'recursiveBacktrack': {
+    [ALGORITHM_RECURSIVE_BACKTRACK]: {
         metadata: {},
         fn(grid) {
             "use strict";
@@ -201,7 +206,7 @@ export const algorithms = {
             }
         }
     },
-    'kruskals': {
+    [ALGORITHM_KRUSKAL]: {
         metadata: {},
         fn(grid, config) {
             "use strict";

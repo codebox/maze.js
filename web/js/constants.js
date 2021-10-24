@@ -1,8 +1,16 @@
-const
+export const
     SHAPE_SQUARE = 'square',
     SHAPE_TRIANGLE = 'triangle',
     SHAPE_HEXAGON = 'hexagon',
     SHAPE_CIRCLE = 'circle',
+
+    ALGORITHM_BINARY_TREE = 'binaryTree',
+    ALGORITHM_SIDEWINDER = 'sidewinder',
+    ALGORITHM_ALDOUS_BRODER = 'aldousBroder',
+    ALGORITHM_WILSON = 'wilson',
+    ALGORITHM_HUNT_AND_KILL = 'huntAndKill',
+    ALGORITHM_RECURSIVE_BACKTRACK = 'recursiveBacktrack',
+    ALGORITHM_KRUSKAL = 'kruskal',
 
     DIRECTION_NORTH = 'n',
     DIRECTION_SOUTH = 's',
