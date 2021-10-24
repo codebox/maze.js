@@ -78,9 +78,9 @@ function buildBaseGrid(config) {
             eventTarget.on(eventName, handler);
         },
         findPathBetween(fromCoords, toCoords) {
-            this.findDistancesFrom(toCoords.x, toCoords.y);
-            let currentCell = this.getCellByCoordinates(fromCoords.x, fromCoords.y),
-                endCell = this.getCellByCoordinates(toCoords.x, toCoords.y);
+            this.findDistancesFrom(...toCoords);
+            let currentCell = this.getCellByCoordinates(...fromCoords),
+                endCell = this.getCellByCoordinates(...toCoords);
 
             const path = [];
 
@@ -325,11 +325,18 @@ function buildTriangularMaze(config) {
 
         const path = grid.metadata[METADATA_PATH];
         if (path) {
-            let previousCoords;
+            let previousX, previousY;
             drawingSurface.setColour('blue');
             path.forEach((currentCoords, i) => {
-                drawFilledTriangle(...getCornerCoords(...currentCoords), '#006BB7');
-                previousCoords = currentCoords;
+                const [p1x, p1y, p2x, p2y, p3x, p3y] = getCornerCoords(currentCoords[0], currentCoords[1]),
+                    // centerX = (p1x + p2x + p3x) / 3,
+                    // centerY = (Math.min(p1y, p2y, p3y) + Math.max(p1y, p2y, p3y)) / 2;
+                    centerX = (p1x + p2x + p3x) / 3,
+                    centerY = (p1y + p2y + p3y) / 3;
+                if (i) {
+                    drawingSurface.line(previousX, previousY, centerX, centerY);
+                }
+                [previousX, previousY] = [centerX, centerY];
             });
             drawingSurface.setColour('black');
         }
@@ -456,18 +463,8 @@ function buildHexagonalMaze(config) {
             drawingSurface.fillPolygon({x: p1x, y:p1y}, {x: p2x, y:p2y}, {x: p3x, y:p3y}, {x: p4x, y:p4y}, {x: p5x, y:p5y}, {x: p6x, y:p6y});
             drawingSurface.setColour('black');
         }
-
-        grid.forEachCell(cell => {
-            "use strict";
-            const [x,y] = cell.coords,
-                eastNeighbour = cell.neighbours[DIRECTION_EAST],
-                westNeighbour = cell.neighbours[DIRECTION_WEST],
-                northEastNeighbour = cell.neighbours[DIRECTION_NORTH_EAST],
-                northWestNeighbour = cell.neighbours[DIRECTION_NORTH_WEST],
-                southEastNeighbour = cell.neighbours[DIRECTION_SOUTH_EAST],
-                southWestNeighbour = cell.neighbours[DIRECTION_SOUTH_WEST],
-
-                rowXOffset = (y % 2) * xOffset,
+        function getCornerCoords(x, y) {
+            const rowXOffset = (y % 2) * xOffset,
                 p1x = rowXOffset + x * xOffset * 2,
                 p1y = yOffset1 + y * yOffset2,
                 p2x = p1x,
@@ -480,6 +477,21 @@ function buildHexagonalMaze(config) {
                 p5y = p1y,
                 p6x = p3x,
                 p6y = y * yOffset2;
+
+            return [p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y, p5x, p5y, p6x, p6y];
+        }
+
+        grid.forEachCell(cell => {
+            "use strict";
+            const [x,y] = cell.coords,
+                eastNeighbour = cell.neighbours[DIRECTION_EAST],
+                westNeighbour = cell.neighbours[DIRECTION_WEST],
+                northEastNeighbour = cell.neighbours[DIRECTION_NORTH_EAST],
+                northWestNeighbour = cell.neighbours[DIRECTION_NORTH_WEST],
+                southEastNeighbour = cell.neighbours[DIRECTION_SOUTH_EAST],
+                southWestNeighbour = cell.neighbours[DIRECTION_SOUTH_WEST],
+
+                [p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y, p5x, p5y, p6x, p6y] = getCornerCoords(x, y);
 
             drawFilledHexagon(p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y, p5x, p5y, p6x, p6y, cell.metadata[METADATA_DISTANCE]);
             if (!eastNeighbour || !cell.isLinkedTo(eastNeighbour)) {
@@ -501,6 +513,24 @@ function buildHexagonalMaze(config) {
                 drawingSurface.line(p2x, p2y, p3x, p3y);
             }
         });
+
+        const path = grid.metadata[METADATA_PATH];
+        if (path) {
+            let previousX, previousY;
+            drawingSurface.setColour('blue');
+            path.forEach((currentCoords, i) => {
+                const
+                    [p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y, p5x, p5y, p6x, p6y] = getCornerCoords(currentCoords[0], currentCoords[1]),
+                    centerX = p3x,
+                    centerY = (p3y + p6y) / 2;
+                if (i) {
+                    drawingSurface.line(previousX, previousY, centerX, centerY);
+                }
+                [previousX, previousY] = [centerX, centerY];
+            });
+            drawingSurface.setColour('black');
+        }
+
     };
 
     return grid;
@@ -590,15 +620,21 @@ function buildCircularMaze(config) {
             drawingSurface.setColour('black');
         }
 
-        grid.forEachCell(cell => {
-            "use strict";
-            const [l,c] = cell.coords,
-                cellsInLayer = cellCounts[l],
+        function getCellCoords(l, c) {
+            const cellsInLayer = cellCounts[l],
                 anglePerCell = Math.PI * 2 / cellsInLayer,
                 startAngle = anglePerCell * c,
                 endAngle = startAngle + anglePerCell,
                 innerDistance = l,
-                outerDistance = l + 1,
+                outerDistance = l + 1;
+
+            return [startAngle, endAngle, innerDistance, outerDistance];
+        }
+
+        grid.forEachCell(cell => {
+            "use strict";
+            const [l,c] = cell.coords,
+                [startAngle, endAngle, innerDistance, outerDistance] = getCellCoords(l, c),
                 outermostLayer = l === grid.metadata.layers - 1,
                 clockwiseNeighbour = cell.neighbours[DIRECTION_CLOCKWISE],
                 anticlockwiseNeighbour = cell.neighbours[DIRECTION_ANTICLOCKWISE],
@@ -621,6 +657,254 @@ function buildCircularMaze(config) {
                 }
             }
         });
+
+        const path = grid.metadata[METADATA_PATH];
+        // if (path) {
+        //     let previousCenterAngle, previousCenterDistance, previousCell;
+        //     drawingSurface.setColour('blue');
+        //     path.forEach((currentCoords, i) => {
+        //         const [currentL, currentC] = currentCoords,
+        //             [currentStartAngle, currentEndAngle, currentInnerDistance, currentOuterDistance] = getCellCoords(currentL, currentC),
+        //             centerAngle = (currentStartAngle + currentEndAngle) / 2,
+        //             centerDistance = (currentInnerDistance + currentOuterDistance) / 2;
+        //         if (i) {
+        //             let fromAngle, toAngle;
+        //             const clockwise = (currentC >= previousCell) || (currentC === 0 && previousCell > 1);
+        //             if (clockwise) {
+        //                 [fromAngle, toAngle] = [previousCenterAngle, centerAngle];
+        //             } else {
+        //                 [fromAngle, toAngle] = [centerAngle, previousCenterAngle];
+        //             }
+        //             drawingSurface.arc(cx, cy, previousCenterDistance, fromAngle, toAngle);
+        //             console.log('arc', fromAngle, toAngle)
+        //             drawingSurface.line(...polarToXy(centerAngle, previousCenterDistance), ...polarToXy(centerAngle, centerDistance));
+        //         }
+        //         [previousCenterAngle, previousCenterDistance, previousCell] = [centerAngle, centerDistance, currentC];
+        //     });
+        //     drawingSurface.setColour('black');
+        // }
+        function thisCell(thisCoords) {
+            const LAYER = 0, INDEX = 1,
+                [thisLayer, thisIndex] = thisCoords;
+            return {
+                isOnInnermostLayer() {
+                    return thisLayer === 0;
+                },
+                isOnOutermostLayer() {
+                    return thisLayer === grid.metadata.layers - 1;
+                },
+                hasFiveExits() {
+                    return ! this.isOnInnermostLayer() && ! this.isOnOutermostLayer() && (cellCounts[thisLayer] < cellCounts[thisLayer + 1]);
+                },
+                hasAntiClockwiseOutsideBorderWith(otherCoords) {
+                    return this.hasFiveExits() && thisLayer + 1 === otherCoords[LAYER] && thisIndex * 2 === otherCoords[INDEX];
+                },
+                hasClockwiseOutsideBorderWith(otherCoords) {
+                    return this.hasFiveExits() && thisLayer + 1 === otherCoords[LAYER] && thisIndex * 2 + 1=== otherCoords[INDEX];
+                },
+                isInSameLayerAs(otherCoords) {
+                    return thisLayer === otherCoords[LAYER];
+                },
+                isInside(otherCoords) {
+                    return thisLayer < otherCoords[LAYER];
+                },
+                isOutside(otherCoords) {
+                    return thisLayer > otherCoords[LAYER];
+                },
+                isAntiClockwiseFrom(otherCoords) {
+                    return this.isInSameLayerAs(otherCoords) && ((otherCoords[INDEX] === thisIndex + 1) || (thisIndex === cellCounts[thisLayer] - 1 && otherCoords[INDEX] === 0));
+                },
+                isClockwiseFrom(otherCoords) {
+                    return this.isInSameLayerAs(otherCoords) && ((otherCoords[INDEX] === thisIndex - 1) || (otherCoords[INDEX] === cellCounts[thisLayer] - 1 && thisIndex === 0));
+                },
+                getCoords() {
+                    return getCellCoords(thisLayer, thisIndex);
+                }
+            };
+        }
+
+        if (path) {
+            drawingSurface.setColour('red');
+            for (let i = 0; i < path.length; i++) {
+                const
+                    previousCellCoords = path[i-1],
+                    currentCellCoords = path[i],
+                    nextCellCoords = path[i+1],
+                    cell = thisCell(currentCellCoords),
+                    [startAngle, endAngle, innerDistance, outerDistance] = cell.getCoords(),
+                    centerDistance = (innerDistance + outerDistance) / 2,
+                    centerAngle = (startAngle + endAngle) / 2;
+
+                if (cell.isOnInnermostLayer()) {
+                    if (previousCellCoords) {
+                        const [previousStartAngle, previousEndAngle, _1, _2] = thisCell(previousCellCoords).getCoords(),
+                            previousCenterAngle = (previousStartAngle + previousEndAngle) / 2;
+                        drawingSurface.line(...polarToXy(previousCenterAngle, 0), ...polarToXy(previousCenterAngle, outerDistance));
+                    }
+
+                    if (nextCellCoords) {
+                        const [nextStartAngle, nextEndAngle, _1, _2] = thisCell(nextCellCoords).getCoords(),
+                            nextCenterAngle = (nextStartAngle + nextEndAngle) / 2;
+                        drawingSurface.line(...polarToXy(nextCenterAngle, 0), ...polarToXy(nextCenterAngle, outerDistance));
+                    }
+
+                } else if (cell.hasFiveExits()) {
+                    const centerClockwiseAngle = (centerAngle + endAngle) / 2,
+                        centerAnticlockwiseAngle = (startAngle + centerAngle) / 2;
+                    if (previousCellCoords) {
+                        if (cell.isClockwiseFrom(previousCellCoords)) {
+                            if (nextCellCoords) {
+                                if (cell.isOutside(nextCellCoords)) {
+                                    drawingSurface.arc(cx, cy, centerDistance, startAngle, centerAngle);
+                                    drawingSurface.line(...polarToXy(centerAngle, centerDistance), ...polarToXy(centerAngle, innerDistance));
+
+                                } else if (cell.isAntiClockwiseFrom(nextCellCoords)) {
+                                    drawingSurface.arc(cx, cy, centerDistance, startAngle, endAngle);
+
+                                } else if (cell.hasClockwiseOutsideBorderWith(nextCellCoords)) {
+                                    drawingSurface.arc(cx, cy, centerDistance, startAngle, centerClockwiseAngle);
+                                    drawingSurface.line(...polarToXy(centerClockwiseAngle, centerDistance), ...polarToXy(centerClockwiseAngle, outerDistance));
+
+                                } else if (cell.hasAntiClockwiseOutsideBorderWith(nextCellCoords)) {
+                                    drawingSurface.arc(cx, cy, centerDistance, startAngle, centerAnticlockwiseAngle);
+                                    drawingSurface.line(...polarToXy(centerAnticlockwiseAngle, centerDistance), ...polarToXy(centerAnticlockwiseAngle, outerDistance));
+                                } else {
+                                    console.assert(false);
+                                }
+
+                            } else {
+                                drawingSurface.arc(cx, cy, centerDistance, startAngle, centerAngle);
+                            }
+
+                        } else if (cell.isAntiClockwiseFrom(previousCellCoords)) {
+                            if (nextCellCoords) {
+                                if (cell.isOutside(nextCellCoords)) {
+                                    drawingSurface.arc(cx, cy, centerDistance, centerAngle, endAngle);
+                                    drawingSurface.line(...polarToXy(centerAngle, centerDistance), ...polarToXy(centerAngle, innerDistance));
+
+                                } else if (cell.isClockwiseFrom(nextCellCoords)) {
+                                    drawingSurface.arc(cx, cy, centerDistance, startAngle, endAngle);
+
+                                } else if (cell.hasClockwiseOutsideBorderWith(nextCellCoords)) {
+                                    drawingSurface.arc(cx, cy, centerDistance, centerClockwiseAngle, endAngle);
+                                    drawingSurface.line(...polarToXy(centerClockwiseAngle, centerDistance), ...polarToXy(centerClockwiseAngle, outerDistance));
+
+                                } else if (cell.hasAntiClockwiseOutsideBorderWith(nextCellCoords)) {
+                                    drawingSurface.arc(cx, cy, centerDistance, centerAnticlockwiseAngle, endAngle);
+                                    drawingSurface.line(...polarToXy(centerAnticlockwiseAngle, centerDistance), ...polarToXy(centerAnticlockwiseAngle, outerDistance));
+                                } else {
+                                    console.assert(false);
+                                }
+
+                            } else {
+                                drawingSurface.arc(cx, cy, centerDistance, centerAngle, endAngle);
+                            }
+
+                        } else if (cell.isOutside(previousCellCoords)) {
+                            drawingSurface.line(...polarToXy(centerAngle, innerDistance), ...polarToXy(centerAngle, centerDistance));
+                            if (nextCellCoords) {
+                                if (cell.isClockwiseFrom(nextCellCoords)) {
+                                    drawingSurface.arc(cx, cy, centerDistance, startAngle, centerAngle);
+
+                                } else if (cell.isAntiClockwiseFrom(nextCellCoords)) {
+                                    drawingSurface.arc(cx, cy, centerDistance, centerAngle, endAngle);
+
+                                } else if (cell.hasClockwiseOutsideBorderWith(nextCellCoords)) {
+                                    drawingSurface.arc(cx, cy, centerDistance, centerAngle, centerClockwiseAngle);
+                                    drawingSurface.line(...polarToXy(centerClockwiseAngle, centerDistance), ...polarToXy(centerClockwiseAngle, outerDistance));
+
+                                } else if (cell.hasAntiClockwiseOutsideBorderWith(nextCellCoords)) {
+                                    drawingSurface.arc(cx, cy, centerDistance, centerAnticlockwiseAngle, centerAngle);
+                                    drawingSurface.line(...polarToXy(centerAnticlockwiseAngle, centerDistance), ...polarToXy(centerAnticlockwiseAngle, outerDistance));
+
+                                } else {
+                                    console.assert(false);
+                                }
+                            }
+
+                        } else if (cell.hasClockwiseOutsideBorderWith(previousCellCoords) ) {
+                            drawingSurface.line(...polarToXy(centerClockwiseAngle, outerDistance), ...polarToXy(centerClockwiseAngle, centerDistance));
+                            if (nextCellCoords) {
+                                if (cell.isClockwiseFrom(nextCellCoords)) {
+                                    drawingSurface.arc(cx, cy, centerDistance, startAngle, centerClockwiseAngle);
+
+                                } else if (cell.isAntiClockwiseFrom(nextCellCoords)) {
+                                    drawingSurface.arc(cx, cy, centerDistance, centerClockwiseAngle, endAngle);
+
+                                } else if (cell.hasAntiClockwiseOutsideBorderWith(nextCellCoords)) {
+                                    drawingSurface.arc(cx, cy, centerDistance, centerAnticlockwiseAngle, centerClockwiseAngle);
+                                    drawingSurface.line(...polarToXy(centerAnticlockwiseAngle, centerDistance), ...polarToXy(centerAnticlockwiseAngle, outerDistance));
+
+                                } else if (cell.isOutside(nextCellCoords)) {
+                                    drawingSurface.arc(cx, cy, centerDistance, centerAngle, centerClockwiseAngle);
+                                    drawingSurface.line(...polarToXy(centerAngle, centerDistance), ...polarToXy(centerAngle, innerDistance));
+
+                                } else {
+                                    console.assert(false);
+                                }
+                            }
+
+                        } else if (cell.hasAntiClockwiseOutsideBorderWith(previousCellCoords) ) {
+                            drawingSurface.line(...polarToXy(centerAnticlockwiseAngle, outerDistance), ...polarToXy(centerAnticlockwiseAngle, centerDistance));
+                            if (nextCellCoords) {
+                                if (cell.isClockwiseFrom(nextCellCoords)) {
+                                    drawingSurface.arc(cx, cy, centerDistance, startAngle, centerAnticlockwiseAngle);
+
+                                } else if (cell.isAntiClockwiseFrom(nextCellCoords)) {
+                                    drawingSurface.arc(cx, cy, centerDistance, centerAnticlockwiseAngle, endAngle);
+
+                                } else if (cell.hasClockwiseOutsideBorderWith(nextCellCoords)) {
+                                    drawingSurface.arc(cx, cy, centerDistance, centerAnticlockwiseAngle, centerClockwiseAngle);
+                                    drawingSurface.line(...polarToXy(centerClockwiseAngle, centerDistance), ...polarToXy(centerClockwiseAngle, outerDistance));
+
+                                } else if (cell.isOutside(nextCellCoords)) {
+                                    drawingSurface.arc(cx, cy, centerDistance, centerAnticlockwiseAngle, centerAngle);
+                                    drawingSurface.line(...polarToXy(centerAngle, centerDistance), ...polarToXy(centerAngle, innerDistance));
+
+                                } else {
+                                    console.assert(false);
+                                }
+                            }
+
+                        } else {
+                            console.assert(false);
+                        }
+
+                    }
+
+                } else {
+                    if (previousCellCoords) {
+                        if (cell.isClockwiseFrom(previousCellCoords)) {
+                            drawingSurface.arc(cx, cy, centerDistance, startAngle, centerAngle);
+                        } else if (cell.isAntiClockwiseFrom(previousCellCoords)) {
+                            drawingSurface.arc(cx, cy, centerDistance, centerAngle, endAngle);
+                        } else if (cell.isOutside(previousCellCoords)) {
+                            drawingSurface.line(...polarToXy(centerAngle, innerDistance), ...polarToXy(centerAngle, centerDistance));
+                        } else if (cell.isInside(previousCellCoords)) {
+                            drawingSurface.line(...polarToXy(centerAngle, outerDistance), ...polarToXy(centerAngle, centerDistance));
+                        } else {
+                            console.assert(false);
+                        }
+                    }
+
+                    if (nextCellCoords) {
+                        if (cell.isAntiClockwiseFrom(nextCellCoords)) {
+                            drawingSurface.arc(cx, cy, centerDistance, centerAngle, endAngle);
+                        } else if (cell.isClockwiseFrom(nextCellCoords)) {
+                            drawingSurface.arc(cx, cy, centerDistance, startAngle, centerAngle);
+                        } else if (cell.isOutside(nextCellCoords)) {
+                            drawingSurface.line(...polarToXy(centerAngle, centerDistance), ...polarToXy(centerAngle, innerDistance));
+                        } else if (cell.isInside(nextCellCoords)) {
+                            drawingSurface.line(...polarToXy(centerAngle, centerDistance), ...polarToXy(centerAngle, outerDistance));
+                        } else {
+                            console.assert(false);
+                        }
+                    }
+                }
+
+            }
+            drawingSurface.setColour('black');
+        }
 
     };
 
