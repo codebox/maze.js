@@ -24,4 +24,8 @@ const
     METADATA_SET_ID = 'setId',
     METADATA_MAX_DISTANCE = 'maxDistance',
     METADATA_DISTANCE = 'distance',
-    METADATA_PATH = 'path';
+    METADATA_PATH = 'path',
+
+    PATH_COLOUR = '#006BB7',
+    CELL_BACKGROUND_COLOUR = 'white',
+    WALL_COLOUR = 'black';

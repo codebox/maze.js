@@ -171,12 +171,12 @@ function buildSquareMaze(config) {
     grid.render = function() {
         function drawFilledSquare(p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y, distance) {
             if (distance === undefined) {
-                drawingSurface.setColour('white');
+                drawingSurface.setColour(CELL_BACKGROUND_COLOUR);
             } else {
                 drawingSurface.setColour(getDistanceColour(distance, grid.metadata[METADATA_MAX_DISTANCE]));
             }
             drawingSurface.fillPolygon({x: p1x, y:p1y}, {x: p2x, y:p2y}, {x: p3x, y:p3y}, {x: p4x, y:p4y});
-            drawingSurface.setColour('black');
+            drawingSurface.setColour(WALL_COLOUR);
         }
 
         grid.forEachCell(cell => {
@@ -207,7 +207,7 @@ function buildSquareMaze(config) {
         if (path) {
             const LINE_OFFSET = 0.5;
             let previousCoords;
-            drawingSurface.setColour('blue');
+            drawingSurface.setColour(PATH_COLOUR);
             path.forEach((currentCoords, i) => {
                 if (i) {
                     const x1 = previousCoords[0] + LINE_OFFSET,
@@ -218,7 +218,7 @@ function buildSquareMaze(config) {
                 }
                 previousCoords = currentCoords;
             });
-            drawingSurface.setColour('black');
+            drawingSurface.setColour(WALL_COLOUR);
         }
     };
 
@@ -298,7 +298,7 @@ function buildTriangularMaze(config) {
         function drawFilledTriangle(p1x, p1y, p2x, p2y, p3x, p3y, colour) {
             drawingSurface.setColour(colour);
             drawingSurface.fillPolygon({x: p1x, y:p1y}, {x: p2x, y:p2y}, {x: p3x, y:p3y});
-            drawingSurface.setColour('black');
+            drawingSurface.setColour(WALL_COLOUR);
         }
 
         function getCornerCoords(x, y) {
@@ -326,11 +326,9 @@ function buildTriangularMaze(config) {
         const path = grid.metadata[METADATA_PATH];
         if (path) {
             let previousX, previousY;
-            drawingSurface.setColour('blue');
+            drawingSurface.setColour(PATH_COLOUR);
             path.forEach((currentCoords, i) => {
                 const [p1x, p1y, p2x, p2y, p3x, p3y] = getCornerCoords(currentCoords[0], currentCoords[1]),
-                    // centerX = (p1x + p2x + p3x) / 3,
-                    // centerY = (Math.min(p1y, p2y, p3y) + Math.max(p1y, p2y, p3y)) / 2;
                     centerX = (p1x + p2x + p3x) / 3,
                     centerY = (p1y + p2y + p3y) / 3;
                 if (i) {
@@ -338,7 +336,7 @@ function buildTriangularMaze(config) {
                 }
                 [previousX, previousY] = [centerX, centerY];
             });
-            drawingSurface.setColour('black');
+            drawingSurface.setColour(WALL_COLOUR);
         }
 
         grid.forEachCell(cell => {
@@ -456,12 +454,12 @@ function buildHexagonalMaze(config) {
     grid.render = function() {
         function drawFilledHexagon(p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y, p5x, p5y, p6x, p6y, distance) {
             if (distance === undefined) {
-                drawingSurface.setColour('white');
+                drawingSurface.setColour(CELL_BACKGROUND_COLOUR);
             } else {
                 drawingSurface.setColour(getDistanceColour(distance, grid.metadata[METADATA_MAX_DISTANCE]));
             }
             drawingSurface.fillPolygon({x: p1x, y:p1y}, {x: p2x, y:p2y}, {x: p3x, y:p3y}, {x: p4x, y:p4y}, {x: p5x, y:p5y}, {x: p6x, y:p6y});
-            drawingSurface.setColour('black');
+            drawingSurface.setColour(WALL_COLOUR);
         }
         function getCornerCoords(x, y) {
             const rowXOffset = (y % 2) * xOffset,
@@ -517,7 +515,7 @@ function buildHexagonalMaze(config) {
         const path = grid.metadata[METADATA_PATH];
         if (path) {
             let previousX, previousY;
-            drawingSurface.setColour('blue');
+            drawingSurface.setColour(PATH_COLOUR);
             path.forEach((currentCoords, i) => {
                 const
                     [p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y, p5x, p5y, p6x, p6y] = getCornerCoords(currentCoords[0], currentCoords[1]),
@@ -528,7 +526,7 @@ function buildHexagonalMaze(config) {
                 }
                 [previousX, previousY] = [centerX, centerY];
             });
-            drawingSurface.setColour('black');
+            drawingSurface.setColour(WALL_COLOUR);
         }
 
     };
@@ -612,12 +610,12 @@ function buildCircularMaze(config) {
         }
         function drawFilledSegment(smallR, bigR, startAngle, endAngle, distance) {
             if (distance === undefined) {
-                drawingSurface.setColour('white');
+                drawingSurface.setColour(CELL_BACKGROUND_COLOUR);
             } else {
                 drawingSurface.setColour(getDistanceColour(distance, grid.metadata[METADATA_MAX_DISTANCE]));
             }
             drawingSurface.fillSegment(cx, cy, smallR, bigR, startAngle, endAngle);
-            drawingSurface.setColour('black');
+            drawingSurface.setColour(WALL_COLOUR);
         }
 
         function getCellCoords(l, c) {
@@ -659,30 +657,8 @@ function buildCircularMaze(config) {
         });
 
         const path = grid.metadata[METADATA_PATH];
-        // if (path) {
-        //     let previousCenterAngle, previousCenterDistance, previousCell;
-        //     drawingSurface.setColour('blue');
-        //     path.forEach((currentCoords, i) => {
-        //         const [currentL, currentC] = currentCoords,
-        //             [currentStartAngle, currentEndAngle, currentInnerDistance, currentOuterDistance] = getCellCoords(currentL, currentC),
-        //             centerAngle = (currentStartAngle + currentEndAngle) / 2,
-        //             centerDistance = (currentInnerDistance + currentOuterDistance) / 2;
-        //         if (i) {
-        //             let fromAngle, toAngle;
-        //             const clockwise = (currentC >= previousCell) || (currentC === 0 && previousCell > 1);
-        //             if (clockwise) {
-        //                 [fromAngle, toAngle] = [previousCenterAngle, centerAngle];
-        //             } else {
-        //                 [fromAngle, toAngle] = [centerAngle, previousCenterAngle];
-        //             }
-        //             drawingSurface.arc(cx, cy, previousCenterDistance, fromAngle, toAngle);
-        //             console.log('arc', fromAngle, toAngle)
-        //             drawingSurface.line(...polarToXy(centerAngle, previousCenterDistance), ...polarToXy(centerAngle, centerDistance));
-        //         }
-        //         [previousCenterAngle, previousCenterDistance, previousCell] = [centerAngle, centerDistance, currentC];
-        //     });
-        //     drawingSurface.setColour('black');
-        // }
+
+
         function thisCell(thisCoords) {
             const LAYER = 0, INDEX = 1,
                 [thisLayer, thisIndex] = thisCoords;
@@ -724,7 +700,7 @@ function buildCircularMaze(config) {
         }
 
         if (path) {
-            drawingSurface.setColour('red');
+            drawingSurface.setColour(PATH_COLOUR);
             for (let i = 0; i < path.length; i++) {
                 const
                     previousCellCoords = path[i-1],
@@ -903,7 +879,7 @@ function buildCircularMaze(config) {
                 }
 
             }
-            drawingSurface.setColour('black');
+            drawingSurface.setColour(WALL_COLOUR);
         }
 
     };
