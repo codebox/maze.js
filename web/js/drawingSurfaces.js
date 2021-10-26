@@ -33,6 +33,9 @@ export const drawingSurfaces = {
         }
 
         return {
+            clear() {
+                ctx.clearRect(0, 0, width, height);
+            },
             setSpaceRequirements(requiredWidth, requiredHeight) {
                 magnification = Math.min(width/requiredWidth, height/requiredHeight);
             },
@@ -123,6 +126,9 @@ export const drawingSurfaces = {
         }
 
         return {
+            clear() {
+                el.innerHTML = '';
+            },
             setSpaceRequirements(requiredWidth, requiredHeight) {
                 magnification = Math.min(width/requiredWidth, height/requiredHeight);
             },

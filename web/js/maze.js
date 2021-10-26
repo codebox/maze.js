@@ -188,6 +188,7 @@ export function buildSquareGrid(config) {
             drawingSurface.setColour(WALL_COLOUR);
         }
 
+        drawingSurface.clear();
         grid.forEachCell(cell => {
             "use strict";
             const [x,y] = cell.coords,
@@ -332,21 +333,55 @@ export function buildTriangularGrid(config) {
             return [p1x, p1y, p2x, p2y, p3x, p3y];
         }
 
+        drawingSurface.clear();
+
+        function midPoint(v1, v2) {
+            return (v1 + v2) / 2;
+        }
+
         const path = grid.metadata[METADATA_PATH];
         if (path) {
             let previousX, previousY;
             drawingSurface.setColour(PATH_COLOUR);
-            path.forEach((currentCoords, i) => {
-                const [p1x, p1y, p2x, p2y, p3x, p3y] = getCornerCoords(currentCoords[0], currentCoords[1]),
-                    centerX = (p1x + p2x + p3x) / 3,
-                    centerY = (p1y + p2y + p3y) / 3;
-                    // centerX = (Math.max(p1x, p2x, p3x) + Math.min(p1x, p2x, p3x)) / 2,
-                    // centerY = (Math.max(p1y, p2y, p3y) + Math.min(p1y, p2y, p3y)) / 2;
-                if (i) {
-                    drawingSurface.line(previousX, previousY, centerX, centerY);
+            for (let i = 0; i < path.length; i++) {
+                const
+                    currentCellCoords = path[i],
+                    nextCellCoords = path[i+1],
+                    [p1x, p1y, p2x, p2y, p3x, p3y] = getCornerCoords(...currentCellCoords);
+
+                if (nextCellCoords) {
+                    const [currentCellX, currentCellY] = currentCellCoords,
+                        [nextCellX, nextCellY] = nextCellCoords;
+
+                    let currentX, currentY;
+                    if (nextCellX > currentCellX) {
+                        currentX = midPoint(p2x, p3x);
+                        currentY = midPoint(p2y, p3y);
+
+                    } else if (nextCellX < currentCellX) {
+                        currentX = midPoint(p1x, p2x);
+                        currentY = midPoint(p1y, p2y);
+
+                    } else {
+                        currentX = midPoint(p3x, p1x);
+                        currentY = midPoint(p3y, p1y);
+                    }
+
+                    drawingSurface.line(previousX, previousY, currentX, currentY);
+                    [previousX, previousY] = [currentX, currentY];
                 }
-                [previousX, previousY] = [centerX, centerY];
-            });
+            }
+                    // path.forEach((currentCoords, i) => {
+            //     const [p1x, p1y, p2x, p2y, p3x, p3y] = getCornerCoords(currentCoords[0], currentCoords[1]),
+            //         centerX = (p1x + p2x + p3x) / 3,
+            //         centerY = (p1y + p2y + p3y) / 3;
+            //         // centerX = (Math.max(p1x, p2x, p3x) + Math.min(p1x, p2x, p3x)) / 2,
+            //         // centerY = (Math.max(p1y, p2y, p3y) + Math.min(p1y, p2y, p3y)) / 2;
+            //     if (i) {
+            //         drawingSurface.line(previousX, previousY, centerX, centerY);
+            //     }
+            //     [previousX, previousY] = [centerX, centerY];
+            // });
             drawingSurface.setColour(WALL_COLOUR);
         }
 
@@ -490,6 +525,7 @@ export function buildHexagonalGrid(config) {
             return [p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y, p5x, p5y, p6x, p6y];
         }
 
+        drawingSurface.clear();
         grid.forEachCell(cell => {
             "use strict";
             const [x,y] = cell.coords,
@@ -640,6 +676,7 @@ export function buildCircularGrid(config) {
             return [startAngle, endAngle, innerDistance, outerDistance];
         }
 
+        drawingSurface.clear();
         grid.forEachCell(cell => {
             "use strict";
             const [l,c] = cell.coords,

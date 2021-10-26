@@ -104,14 +104,15 @@ export function buildMaze(config) {
 
     return grid;
 }
-//
+
 // const maze = buildMaze({
 //     'grid': {
-//         'cellShape': 'square',
-//         'width': SIZE,
+//         'cellShape': 'triangle',
+//         'width': SIZE * 1.7,
 //         'height': SIZE
 //     },
-//     'algorithm': 'sidewinder',
-//     'randomSeed' : 123,
+//     'algorithm': 'wilson',
 //     'element': document.getElementById('canvas1')
 // });
+// maze.findPathBetween([0,0], [SIZE-1, SIZE-1])
+// maze.render()

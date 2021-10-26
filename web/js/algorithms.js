@@ -2,7 +2,9 @@ import {forEachContiguousPair} from './utils.js';
 import {
     ALGORITHM_BINARY_TREE, ALGORITHM_SIDEWINDER, ALGORITHM_ALDOUS_BRODER, ALGORITHM_WILSON, ALGORITHM_HUNT_AND_KILL, ALGORITHM_RECURSIVE_BACKTRACK, ALGORITHM_KRUSKAL,
     METADATA_VISITED, METADATA_SET_ID,
-    DIRECTION_EAST, DIRECTION_SOUTH
+    DIRECTION_EAST, DIRECTION_SOUTH,
+    SHAPE_SQUARE, SHAPE_TRIANGLE, SHAPE_HEXAGON, SHAPE_CIRCLE
+
 } from './constants.js';
 
 
@@ -20,11 +22,13 @@ function isUnvisited(cell) {
 
 export const algorithms = {
     [ALGORITHM_BINARY_TREE]: {
-        metadata: {}, // description, maskable, unsupported shapes
+        metadata: {
+            'description': 'Binary Tree',
+            'maskable': false,
+            'shapes': [SHAPE_SQUARE]
+        },
         fn(grid, config) {
             "use strict";
-            console.assert(grid.isSquare);
-
             const {random} = config;
 
             grid.forEachCell(cell => {
@@ -46,11 +50,13 @@ export const algorithms = {
         }
     },
     [ALGORITHM_SIDEWINDER]: {
-        metadata: {},
+        metadata: {
+            'description': 'Sidewinder',
+            'maskable': false,
+            'shapes': [SHAPE_SQUARE]
+        },
         fn(grid, config) {
             "use strict";
-            console.assert(grid.isSquare);
-
             const {random} = config;
 
             for (let y = 0; y < grid.metadata.height; y++) {
@@ -78,7 +84,11 @@ export const algorithms = {
         }
     },
     [ALGORITHM_ALDOUS_BRODER]: {
-        metadata: {},
+        metadata: {
+            'description': 'Aldous Broder',
+            'maskable': true,
+            'shapes': [SHAPE_SQUARE, SHAPE_TRIANGLE, SHAPE_HEXAGON, SHAPE_CIRCLE]
+        },
         fn(grid, config) {
             "use strict";
             const {random} = config;
@@ -106,7 +116,11 @@ export const algorithms = {
         }
     },
     [ALGORITHM_WILSON]: {
-        metadata: {},
+        metadata: {
+            'description': 'Wilson',
+            'maskable': true,
+            'shapes': [SHAPE_SQUARE, SHAPE_TRIANGLE, SHAPE_HEXAGON, SHAPE_CIRCLE]
+        },
         fn(grid, config) {
             "use strict";
             const {random} = config;
@@ -142,7 +156,11 @@ export const algorithms = {
         }
     },
     [ALGORITHM_HUNT_AND_KILL]: {
-        metadata: {},
+        metadata: {
+            'description': 'Hunt and Kill',
+            'maskable': true,
+            'shapes': [SHAPE_SQUARE, SHAPE_TRIANGLE, SHAPE_HEXAGON, SHAPE_CIRCLE]
+        },
         fn(grid, config) {
             "use strict";
             const {random} = config;
@@ -171,7 +189,11 @@ export const algorithms = {
         }
     },
     [ALGORITHM_RECURSIVE_BACKTRACK]: {
-        metadata: {},
+        metadata: {
+            'description': 'Recursive Backtrack',
+            'maskable': true,
+            'shapes': [SHAPE_SQUARE, SHAPE_TRIANGLE, SHAPE_HEXAGON, SHAPE_CIRCLE]
+        },
         fn(grid) {
             "use strict";
             const stack = [];
@@ -207,12 +229,14 @@ export const algorithms = {
         }
     },
     [ALGORITHM_KRUSKAL]: {
-        metadata: {},
+        metadata: {
+            'description': 'Kruskal',
+            'maskable': true,
+            'shapes': [SHAPE_SQUARE]
+        },
         fn(grid, config) {
             "use strict";
             const {random} = config;
-
-            console.assert(grid.isSquare);
 
             const links = [],
                 connectedSets = {};

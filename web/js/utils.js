@@ -17,6 +17,7 @@ export function buildEventTarget() {
             const event = new Event(eventName);
             event.data = eventData;
             eventTarget.dispatchEvent(event);
+            console.log('EVENT', eventName, eventData);
         },
         on(eventName, eventHandler) {
             handlers.push({eventName, eventHandler});
