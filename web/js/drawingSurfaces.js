@@ -1,5 +1,7 @@
 import {buildEventTarget} from './utils.js';
 
+export const EVENT_CLICK = 'click';
+
 export const drawingSurfaces = {
     canvas(config) {
         const eventTarget = buildEventTarget(),
@@ -7,7 +9,7 @@ export const drawingSurfaces = {
             {width,height} = el,
             ctx = el.getContext('2d');
 
-        el.addEventListener('click', event => {
+        el.addEventListener(EVENT_CLICK, event => {
             eventTarget.trigger(EVENT_CLICK, {
                 x: invXCoord(event.offsetX),
                 y: invYCoord(event.offsetY),
@@ -97,7 +99,7 @@ export const drawingSurfaces = {
             height = el.clientHeight;
         let magnification = 1, colour = 'black';
 
-        el.addEventListener('click', event => {
+        el.addEventListener(EVENT_CLICK, event => {
             eventTarget.trigger(EVENT_CLICK, {
                 x: invXCoord(event.offsetX),
                 y: invYCoord(event.offsetY),
