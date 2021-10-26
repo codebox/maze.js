@@ -88,6 +88,9 @@ export const drawingSurfaces = {
             },
             on(eventName, handler) {
                 eventTarget.on(eventName, handler);
+            },
+            dispose() {
+                eventTarget.off();
             }
         };
     },
@@ -194,6 +197,9 @@ export const drawingSurfaces = {
             },
             on(eventName, handler) {
                 eventTarget.on(eventName, handler);
+            },
+            dispose() {
+                eventTarget.off();
             }
         };
     }

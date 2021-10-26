@@ -17,19 +17,18 @@ export function buildEventTarget() {
             const event = new Event(eventName);
             event.data = eventData;
             eventTarget.dispatchEvent(event);
-            console.log('EVENT', eventName, eventData);
+            // console.log('EVENT', eventName, eventData);
         },
-        on(eventName, eventHandler) {
+        on(eventName, handler) {
+            const eventHandler = event => handler(event.data);
             handlers.push({eventName, eventHandler});
-            eventTarget.addEventListener(eventName, event => {
-                eventHandler(event.data);
-            });
+            eventTarget.addEventListener(eventName, eventHandler);
         },
         off(eventNameToRemove) {
             let i = handlers.length;
             while (i--) {
                 const {eventName, eventHandler} = handlers[i];
-                if (eventName === eventNameToRemove) {
+                if (!eventNameToRemove || eventName === eventNameToRemove) {
                     eventTarget.removeEventListener(eventName, eventHandler);
                     handlers.splice(i, 1);
                 }

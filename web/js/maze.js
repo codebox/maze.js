@@ -9,7 +9,6 @@ import {
     CELL_BACKGROUND_COLOUR, WALL_COLOUR, PATH_COLOUR
 } from './constants.js';
 
-
 const eventTarget = buildEventTarget();
 
 function buildBaseGrid(config) {
@@ -134,6 +133,12 @@ function buildBaseGrid(config) {
         clearDistances() {
             this.forEachCell(cell => delete cell.metadata[METADATA_DISTANCE]);
             delete this.metadata[METADATA_MAX_DISTANCE];
+        },
+        dispose() {
+            eventTarget.off();
+            if (config.drawingSurface) {
+                config.drawingSurface.dispose();
+            }
         }
     };
 }
