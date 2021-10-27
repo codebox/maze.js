@@ -196,13 +196,18 @@ export function buildSquareGrid(config) {
         drawingSurface.clear();
         grid.forEachCell(cell => {
             "use strict";
+            const [x,y] = cell.coords;
+
+            drawFilledSquare(x, y, x+1, y, x+1, y+1, x, y+1, cell.metadata[METADATA_DISTANCE]);
+        });
+
+        grid.forEachCell(cell => {
+            "use strict";
             const [x,y] = cell.coords,
                 northNeighbour = cell.neighbours[DIRECTION_NORTH],
                 southNeighbour = cell.neighbours[DIRECTION_SOUTH],
                 eastNeighbour = cell.neighbours[DIRECTION_EAST],
                 westNeighbour = cell.neighbours[DIRECTION_WEST];
-
-            drawFilledSquare(x, y, x+1, y, x+1, y+1, x, y+1, cell.metadata[METADATA_DISTANCE]);
 
             if (!northNeighbour || !cell.isLinkedTo(northNeighbour)) {
                 drawingSurface.line(x,y,x+1,y);
@@ -393,6 +398,16 @@ export function buildTriangularGrid(config) {
         grid.forEachCell(cell => {
             "use strict";
             const [x,y] = cell.coords,
+                [p1x, p1y, p2x, p2y, p3x, p3y] = getCornerCoords(x, y);
+
+            const distance = cell.metadata[METADATA_DISTANCE],
+                colour = (distance === undefined) ? 'white' : getDistanceColour(distance, grid.metadata[METADATA_MAX_DISTANCE]);
+            drawFilledTriangle(p1x, p1y, p2x, p2y, p3x, p3y, colour);
+        });
+
+        grid.forEachCell(cell => {
+            "use strict";
+            const [x,y] = cell.coords,
                 northNeighbour = cell.neighbours[DIRECTION_NORTH],
                 southNeighbour = cell.neighbours[DIRECTION_SOUTH],
                 eastNeighbour = cell.neighbours[DIRECTION_EAST],
@@ -400,13 +415,6 @@ export function buildTriangularGrid(config) {
 
             const [p1x, p1y, p2x, p2y, p3x, p3y] = getCornerCoords(x, y),
                 northOrSouthNeighbour = hasBaseOnSouthSide(x, y) ? southNeighbour : northNeighbour;
-
-            if (!path) {
-                const distance = cell.metadata[METADATA_DISTANCE],
-                    colour = (distance === undefined) ? 'white' : getDistanceColour(distance, grid.metadata[METADATA_MAX_DISTANCE]);
-                drawFilledTriangle(p1x, p1y, p2x, p2y, p3x, p3y, colour);
-
-            }
 
             if (!northOrSouthNeighbour || !cell.isLinkedTo(northOrSouthNeighbour)) {
                 drawingSurface.line(p1x, p1y, p3x, p3y);
@@ -418,7 +426,6 @@ export function buildTriangularGrid(config) {
                 drawingSurface.line(p1x, p1y, p2x, p2y);
             }
         });
-
     };
 
     return grid;
@@ -534,6 +541,14 @@ export function buildHexagonalGrid(config) {
         grid.forEachCell(cell => {
             "use strict";
             const [x,y] = cell.coords,
+                [p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y, p5x, p5y, p6x, p6y] = getCornerCoords(x, y);
+
+            drawFilledHexagon(p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y, p5x, p5y, p6x, p6y, cell.metadata[METADATA_DISTANCE]);
+        });
+
+        grid.forEachCell(cell => {
+            "use strict";
+            const [x,y] = cell.coords,
                 eastNeighbour = cell.neighbours[DIRECTION_EAST],
                 westNeighbour = cell.neighbours[DIRECTION_WEST],
                 northEastNeighbour = cell.neighbours[DIRECTION_NORTH_EAST],
@@ -543,7 +558,6 @@ export function buildHexagonalGrid(config) {
 
                 [p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y, p5x, p5y, p6x, p6y] = getCornerCoords(x, y);
 
-            drawFilledHexagon(p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y, p5x, p5y, p6x, p6y, cell.metadata[METADATA_DISTANCE]);
             if (!eastNeighbour || !cell.isLinkedTo(eastNeighbour)) {
                 drawingSurface.line(p4x, p4y, p5x, p5y);
             }
@@ -685,13 +699,19 @@ export function buildCircularGrid(config) {
         grid.forEachCell(cell => {
             "use strict";
             const [l,c] = cell.coords,
+                [startAngle, endAngle, innerDistance, outerDistance] = getCellCoords(l, c);
+
+            drawFilledSegment(l, l + 1, startAngle, endAngle, cell.metadata[METADATA_DISTANCE]);
+        });
+
+        grid.forEachCell(cell => {
+            "use strict";
+            const [l,c] = cell.coords,
                 [startAngle, endAngle, innerDistance, outerDistance] = getCellCoords(l, c),
                 outermostLayer = l === grid.metadata.layers - 1,
                 clockwiseNeighbour = cell.neighbours[DIRECTION_CLOCKWISE],
                 anticlockwiseNeighbour = cell.neighbours[DIRECTION_ANTICLOCKWISE],
                 inwardsNeighbour = cell.neighbours[DIRECTION_INWARDS];
-
-            drawFilledSegment(l, l + 1, startAngle, endAngle, cell.metadata[METADATA_DISTANCE]);
 
             if (l > 0) {
                 if (!cell.isLinkedTo(anticlockwiseNeighbour)) {
@@ -710,7 +730,6 @@ export function buildCircularGrid(config) {
         });
 
         const path = grid.metadata[METADATA_PATH];
-
 
         function thisCell(thisCoords) {
             const LAYER = 0, INDEX = 1,

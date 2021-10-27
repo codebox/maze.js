@@ -94,7 +94,8 @@ export function buildMaze(config) {
         layers: config.grid.layers,
         random,
         drawingSurface: drawingSurfaces[config.element.tagName.toLowerCase()]({
-            el: config.element
+            el: config.element,
+            lineWidth: config.lineWidth
         })
     }),
         algorithm = algorithms[config.algorithm];

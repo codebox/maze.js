@@ -5,9 +5,14 @@ export const EVENT_CLICK = 'click';
 export const drawingSurfaces = {
     canvas(config) {
         const eventTarget = buildEventTarget(),
-            {el} = config,
+            {el, lineWidth} = config,
             {width,height} = el,
-            ctx = el.getContext('2d');
+            ctx = el.getContext('2d'),
+            xOffset = lineWidth / 2,
+            yOffset = lineWidth / 2;
+
+        ctx.lineCap = 'round';
+        ctx.lineWidth = lineWidth;
 
         el.addEventListener(EVENT_CLICK, event => {
             eventTarget.trigger(EVENT_CLICK, {
@@ -19,16 +24,16 @@ export const drawingSurfaces = {
 
         let magnification = 1;
         function xCoord(x) {
-            return x * magnification;
+            return xOffset + x * magnification;
         }
         function invXCoord(x) {
-            return x / magnification;
+            return (x - xOffset) / magnification;
         }
         function yCoord(y) {
-            return y * magnification;
+            return yOffset + y * magnification;
         }
         function invYCoord(y) {
-            return y / magnification;
+            return (y - yOffset) / magnification;
         }
         function distance(d) {
             return d * magnification;
@@ -39,7 +44,7 @@ export const drawingSurfaces = {
                 ctx.clearRect(0, 0, width, height);
             },
             setSpaceRequirements(requiredWidth, requiredHeight) {
-                magnification = Math.min(width/requiredWidth, height/requiredHeight);
+                magnification = Math.min((width - lineWidth)/requiredWidth, (height - lineWidth)/requiredHeight);
             },
             setColour(colour) {
                 ctx.strokeStyle = colour;
@@ -97,7 +102,7 @@ export const drawingSurfaces = {
     svg(config) {
         const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
         const eventTarget = buildEventTarget(),
-            {el} = config,
+            {el, lineWidth} = config,
             width = el.clientWidth,
             height = el.clientHeight;
         let magnification = 1, colour = 'black';
@@ -147,6 +152,7 @@ export const drawingSurfaces = {
                 elLine.setAttribute('x2', xCoord(x2));
                 elLine.setAttribute('y2', yCoord(y2));
                 elLine.setAttribute('stroke', colour);
+                elLine.setAttribute('stroke-width', lineWidth);
                 el.appendChild(elLine);
             },
             fillPolygon(...xyPoints) {
@@ -193,6 +199,7 @@ export const drawingSurfaces = {
                 elPath.setAttribute('d', d);
                 elPath.setAttribute('fill', 'none');
                 elPath.setAttribute('stroke', colour);
+                elLine.setAttribute('stroke-width', lineWidth);
                 el.appendChild(elPath);
             },
             on(eventName, handler) {
