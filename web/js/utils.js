@@ -7,7 +7,7 @@ export function forEachContiguousPair(array, fn) {
     }
 }
 
-export function buildEventTarget() {
+export function buildEventTarget(name) {
     "use strict";
     const eventTarget = new EventTarget(),
         handlers = [];
@@ -17,7 +17,7 @@ export function buildEventTarget() {
             const event = new Event(eventName);
             event.data = eventData;
             eventTarget.dispatchEvent(event);
-            // console.log('EVENT', eventName, eventData);
+            console.log('EVENT', name, eventName, eventData);
         },
         on(eventName, handler) {
             const eventHandler = event => handler(event.data);

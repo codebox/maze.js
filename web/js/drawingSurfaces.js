@@ -4,25 +4,23 @@ export const EVENT_CLICK = 'click';
 
 export const drawingSurfaces = {
     canvas(config) {
-        const eventTarget = buildEventTarget(),
-            {el, lineWidth} = config,
+        const eventTarget = buildEventTarget('drawingSurfaces.canvas'),
+            {el} = config,
             {width,height} = el,
-            ctx = el.getContext('2d'),
-            xOffset = lineWidth / 2,
-            yOffset = lineWidth / 2;
+            ctx = el.getContext('2d');
 
         ctx.lineCap = 'round';
-        ctx.lineWidth = lineWidth;
 
-        el.addEventListener(EVENT_CLICK, event => {
+        function onClick(event) {
             eventTarget.trigger(EVENT_CLICK, {
                 x: invXCoord(event.offsetX),
                 y: invYCoord(event.offsetY),
                 shift: event.shiftKey
             });
-        });
+        }
+        el.addEventListener(EVENT_CLICK, onClick);
 
-        let magnification = 1;
+        let magnification = 1, xOffset, yOffset;
         function xCoord(x) {
             return xOffset + x * magnification;
         }
@@ -44,7 +42,12 @@ export const drawingSurfaces = {
                 ctx.clearRect(0, 0, width, height);
             },
             setSpaceRequirements(requiredWidth, requiredHeight) {
+                const LINE_WIDTH_CONST = 0.1,
+                    lineWidth = LINE_WIDTH_CONST * Math.min(width/requiredWidth, height/requiredHeight);
                 magnification = Math.min((width - lineWidth)/requiredWidth, (height - lineWidth)/requiredHeight);
+                ctx.lineWidth = lineWidth;
+                xOffset = lineWidth / 2;
+                yOffset = lineWidth / 2;
             },
             setColour(colour) {
                 ctx.strokeStyle = colour;
@@ -96,12 +99,13 @@ export const drawingSurfaces = {
             },
             dispose() {
                 eventTarget.off();
+                el.removeEventListener(EVENT_CLICK, onClick);
             }
         };
     },
     svg(config) {
         const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
-        const eventTarget = buildEventTarget(),
+        const eventTarget = buildEventTarget('drawingSurfaces.svg'),
             {el, lineWidth} = config,
             width = el.clientWidth,
             height = el.clientHeight;

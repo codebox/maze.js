@@ -23,7 +23,7 @@ function getCellBackgroundColour(cell, grid) {
     }
 }
 
-const eventTarget = buildEventTarget();
+const eventTarget = buildEventTarget('maze');
 
 function buildBaseGrid(config) {
     "use strict";
