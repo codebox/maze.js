@@ -1,13 +1,27 @@
 import {buildEventTarget} from './utils.js';
 import {
-    METADATA_DISTANCE, METADATA_PATH, METADATA_MAX_DISTANCE,
+    METADATA_DISTANCE, METADATA_PATH, METADATA_MAX_DISTANCE, METADATA_MASKED,
     EVENT_CLICK,
     DIRECTION_NORTH, DIRECTION_SOUTH, DIRECTION_EAST, DIRECTION_WEST,
     DIRECTION_NORTH_WEST, DIRECTION_NORTH_EAST, DIRECTION_SOUTH_WEST, DIRECTION_SOUTH_EAST,
     DIRECTION_CLOCKWISE, DIRECTION_ANTICLOCKWISE,
     DIRECTION_INWARDS,
-    CELL_BACKGROUND_COLOUR, WALL_COLOUR, PATH_COLOUR
+    CELL_BACKGROUND_COLOUR, WALL_COLOUR, PATH_COLOUR, CELL_MASKED_COLOUR
 } from './constants.js';
+
+function getCellBackgroundColour(cell, grid) {
+    const distance = cell.metadata[METADATA_DISTANCE];
+
+    if (distance !== undefined) {
+        return getDistanceColour(distance, grid.metadata[METADATA_MAX_DISTANCE]);
+
+    } else if (cell.metadata[METADATA_MASKED]) {
+        return CELL_MASKED_COLOUR;
+
+    } else {
+        return CELL_BACKGROUND_COLOUR;
+    }
+}
 
 const eventTarget = buildEventTarget();
 
@@ -26,7 +40,10 @@ function buildBaseGrid(config) {
             metadata: {},
             neighbours: {
                 random(fnCriteria = () => true) {
-                    return random.choice(Object.values(this).filter(value => typeof value !== 'function').filter(fnCriteria));
+                    return random.choice(this.toArray().filter(fnCriteria));
+                },
+                toArray() {
+                    return Object.values(this).filter(value => typeof value !== 'function');
                 }
             },
             isLinkedTo(otherCell) {
@@ -34,6 +51,19 @@ function buildBaseGrid(config) {
             },
             links: []
         };
+    }
+    function removeNeighbour(cell, neighbour) {
+        const linkIndex = cell.links.indexOf(neighbour);
+        if (linkIndex >= 0) {
+            cell.links.splice(linkIndex, 1);
+        }
+        Object.keys(cell.neighbours).filter(key => cell.neighbours[key] === neighbour).forEach(key => delete cell.neighbours[key]);
+    }
+    function removeNeighbours(cell) {
+        cell.neighbours.toArray().forEach(neighbour => {
+            removeNeighbour(cell, neighbour);
+            removeNeighbour(neighbour, cell);
+        });
     }
 
     return {
@@ -60,6 +90,11 @@ function buildBaseGrid(config) {
             console.assert(!cells[id]);
             cells[id] = cell;
             return id;
+        },
+        removeCell(...coords) {
+            const cell = this.getCellByCoordinates(coords);
+            removeNeighbours(cell);
+            delete cells[cell.id];
         },
         makeNeighbours(cell1WithDirection, cell2WithDirection) {
             const
@@ -183,26 +218,19 @@ export function buildSquareGrid(config) {
     };
 
     grid.render = function() {
-        function drawFilledSquare(p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y, distance) {
-            if (distance === undefined) {
-                drawingSurface.setColour(CELL_BACKGROUND_COLOUR);
-            } else {
-                drawingSurface.setColour(getDistanceColour(distance, grid.metadata[METADATA_MAX_DISTANCE]));
-            }
+        function drawFilledSquare(p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y, cell) {
+            drawingSurface.setColour(getCellBackgroundColour(cell, grid));
             drawingSurface.fillPolygon({x: p1x, y:p1y}, {x: p2x, y:p2y}, {x: p3x, y:p3y}, {x: p4x, y:p4y});
             drawingSurface.setColour(WALL_COLOUR);
         }
 
         drawingSurface.clear();
         grid.forEachCell(cell => {
-            "use strict";
             const [x,y] = cell.coords;
-
-            drawFilledSquare(x, y, x+1, y, x+1, y+1, x, y+1, cell.metadata[METADATA_DISTANCE]);
+            drawFilledSquare(x, y, x+1, y, x+1, y+1, x, y+1, cell);
         });
 
         grid.forEachCell(cell => {
-            "use strict";
             const [x,y] = cell.coords,
                 northNeighbour = cell.neighbours[DIRECTION_NORTH],
                 southNeighbour = cell.neighbours[DIRECTION_SOUTH],
@@ -315,8 +343,8 @@ export function buildTriangularGrid(config) {
     };
 
     grid.render = function() {
-        function drawFilledTriangle(p1x, p1y, p2x, p2y, p3x, p3y, colour) {
-            drawingSurface.setColour(colour);
+        function drawFilledTriangle(p1x, p1y, p2x, p2y, p3x, p3y, cell) {
+            drawingSurface.setColour(getCellBackgroundColour(cell, grid));
             drawingSurface.fillPolygon({x: p1x, y:p1y}, {x: p2x, y:p2y}, {x: p3x, y:p3y});
             drawingSurface.setColour(WALL_COLOUR);
         }
@@ -381,17 +409,7 @@ export function buildTriangularGrid(config) {
                     [previousX, previousY] = [currentX, currentY];
                 }
             }
-                    // path.forEach((currentCoords, i) => {
-            //     const [p1x, p1y, p2x, p2y, p3x, p3y] = getCornerCoords(currentCoords[0], currentCoords[1]),
-            //         centerX = (p1x + p2x + p3x) / 3,
-            //         centerY = (p1y + p2y + p3y) / 3;
-            //         // centerX = (Math.max(p1x, p2x, p3x) + Math.min(p1x, p2x, p3x)) / 2,
-            //         // centerY = (Math.max(p1y, p2y, p3y) + Math.min(p1y, p2y, p3y)) / 2;
-            //     if (i) {
-            //         drawingSurface.line(previousX, previousY, centerX, centerY);
-            //     }
-            //     [previousX, previousY] = [centerX, centerY];
-            // });
+
             drawingSurface.setColour(WALL_COLOUR);
         }
 
@@ -399,10 +417,7 @@ export function buildTriangularGrid(config) {
             "use strict";
             const [x,y] = cell.coords,
                 [p1x, p1y, p2x, p2y, p3x, p3y] = getCornerCoords(x, y);
-
-            const distance = cell.metadata[METADATA_DISTANCE],
-                colour = (distance === undefined) ? 'white' : getDistanceColour(distance, grid.metadata[METADATA_MAX_DISTANCE]);
-            drawFilledTriangle(p1x, p1y, p2x, p2y, p3x, p3y, colour);
+            drawFilledTriangle(p1x, p1y, p2x, p2y, p3x, p3y, cell);
         });
 
         grid.forEachCell(cell => {
@@ -510,12 +525,8 @@ export function buildHexagonalGrid(config) {
     };
 
     grid.render = function() {
-        function drawFilledHexagon(p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y, p5x, p5y, p6x, p6y, distance) {
-            if (distance === undefined) {
-                drawingSurface.setColour(CELL_BACKGROUND_COLOUR);
-            } else {
-                drawingSurface.setColour(getDistanceColour(distance, grid.metadata[METADATA_MAX_DISTANCE]));
-            }
+        function drawFilledHexagon(p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y, p5x, p5y, p6x, p6y, cell) {
+            drawingSurface.setColour(getCellBackgroundColour(cell, grid));
             drawingSurface.fillPolygon({x: p1x, y:p1y}, {x: p2x, y:p2y}, {x: p3x, y:p3y}, {x: p4x, y:p4y}, {x: p5x, y:p5y}, {x: p6x, y:p6y});
             drawingSurface.setColour(WALL_COLOUR);
         }
@@ -543,7 +554,7 @@ export function buildHexagonalGrid(config) {
             const [x,y] = cell.coords,
                 [p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y, p5x, p5y, p6x, p6y] = getCornerCoords(x, y);
 
-            drawFilledHexagon(p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y, p5x, p5y, p6x, p6y, cell.metadata[METADATA_DISTANCE]);
+            drawFilledHexagon(p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y, p5x, p5y, p6x, p6y, cell);
         });
 
         grid.forEachCell(cell => {
@@ -674,12 +685,8 @@ export function buildCircularGrid(config) {
         function polarToXy(angle, distance) {
             return [cx + distance * Math.sin(angle), cy - distance * Math.cos(angle)];
         }
-        function drawFilledSegment(smallR, bigR, startAngle, endAngle, distance) {
-            if (distance === undefined) {
-                drawingSurface.setColour(CELL_BACKGROUND_COLOUR);
-            } else {
-                drawingSurface.setColour(getDistanceColour(distance, grid.metadata[METADATA_MAX_DISTANCE]));
-            }
+        function drawFilledSegment(smallR, bigR, startAngle, endAngle, cell) {
+            drawingSurface.setColour(getCellBackgroundColour(cell, grid));
             drawingSurface.fillSegment(cx, cy, smallR, bigR, startAngle, endAngle);
             drawingSurface.setColour(WALL_COLOUR);
         }
@@ -701,7 +708,7 @@ export function buildCircularGrid(config) {
             const [l,c] = cell.coords,
                 [startAngle, endAngle, innerDistance, outerDistance] = getCellCoords(l, c);
 
-            drawFilledSegment(l, l + 1, startAngle, endAngle, cell.metadata[METADATA_DISTANCE]);
+            drawFilledSegment(l, l + 1, startAngle, endAngle, cell);
         });
 
         grid.forEachCell(cell => {

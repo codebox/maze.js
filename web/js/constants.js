@@ -34,7 +34,9 @@ export const
     METADATA_MAX_DISTANCE = 'maxDistance',
     METADATA_DISTANCE = 'distance',
     METADATA_PATH = 'path',
+    METADATA_MASKED = 'masked',
 
     PATH_COLOUR = '#006BB7',
     CELL_BACKGROUND_COLOUR = 'white',
+    CELL_MASKED_COLOUR = 'grey',
     WALL_COLOUR = 'black';
