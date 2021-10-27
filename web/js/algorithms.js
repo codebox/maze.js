@@ -1,6 +1,6 @@
 import {forEachContiguousPair} from './utils.js';
 import {
-    ALGORITHM_BINARY_TREE, ALGORITHM_SIDEWINDER, ALGORITHM_ALDOUS_BRODER, ALGORITHM_WILSON, ALGORITHM_HUNT_AND_KILL, ALGORITHM_RECURSIVE_BACKTRACK, ALGORITHM_KRUSKAL,
+    ALGORITHM_NONE, ALGORITHM_BINARY_TREE, ALGORITHM_SIDEWINDER, ALGORITHM_ALDOUS_BRODER, ALGORITHM_WILSON, ALGORITHM_HUNT_AND_KILL, ALGORITHM_RECURSIVE_BACKTRACK, ALGORITHM_KRUSKAL,
     METADATA_VISITED, METADATA_SET_ID,
     DIRECTION_EAST, DIRECTION_SOUTH,
     SHAPE_SQUARE, SHAPE_TRIANGLE, SHAPE_HEXAGON, SHAPE_CIRCLE
@@ -21,6 +21,14 @@ function isUnvisited(cell) {
 }
 
 export const algorithms = {
+    [ALGORITHM_NONE]: {
+        metadata: {
+            'description': 'Grid',
+            'maskable': true,
+            'shapes': [SHAPE_SQUARE, SHAPE_TRIANGLE, SHAPE_HEXAGON, SHAPE_CIRCLE]
+        },
+        fn(grid, config) {}
+    },
     [ALGORITHM_BINARY_TREE]: {
         metadata: {
             'description': 'Binary Tree',

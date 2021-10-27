@@ -4,6 +4,7 @@ export const
     SHAPE_HEXAGON = 'hexagon',
     SHAPE_CIRCLE = 'circle',
 
+    ALGORITHM_NONE = 'none',
     ALGORITHM_BINARY_TREE = 'binaryTree',
     ALGORITHM_SIDEWINDER = 'sidewinder',
     ALGORITHM_ALDOUS_BRODER = 'aldousBroder',
