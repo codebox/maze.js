@@ -188,10 +188,13 @@ export function buildSquareGrid(config) {
         grid = buildBaseGrid(config);
 
     drawingSurface.on(EVENT_CLICK, event => {
-        eventTarget.trigger(EVENT_CLICK, {
-            coords: [Math.floor(event.x), Math.floor(event.y)],
-            shift: event.shift
-        });
+        const coords = [Math.floor(event.x), Math.floor(event.y)];
+        if (grid.getCellByCoordinates(coords)) {
+            eventTarget.trigger(EVENT_CLICK, {
+                coords,
+                shift: event.shift
+            });
+        }
     });
     drawingSurface.setSpaceRequirements(grid.metadata.width, grid.metadata.height);
 
@@ -306,11 +309,12 @@ export function buildTriangularGrid(config) {
             return Math.floor(event.y / verticalAltitude);
         }
         const x = getXCoord(event),
-            y = getYCoord(event);
+            y = getYCoord(event),
+            coords = [x,y];
 
-        if (x >= 0 && x < config.width && y >= 0 && y < config.height) {
+        if (grid.getCellByCoordinates(coords)) {
             eventTarget.trigger(EVENT_CLICK, {
-                coords: [x, y],
+                coords,
                 shift: event.shift
             });
         }
@@ -488,9 +492,11 @@ export function buildHexagonalGrid(config) {
             x = Math.floor((event.x - xRowBasedAdjustment) / (2 * xOffset));
             y = row;
         }
-        if (x >= 0 && x < config.width && y >= 0 && y < config.height) {
+        const coords = [x, y];
+
+        if (grid.getCellByCoordinates(coords)) {
             eventTarget.trigger(EVENT_CLICK, {
-                coords: [x, y],
+                coords,
                 shift: event.shift
             });
         }
@@ -630,11 +636,12 @@ export function buildCircularGrid(config) {
             cellsInThisLayer = cellCounts[layer],
             anglePerCell = Math.PI * 2 / cellsInThisLayer,
             angle = (Math.atan2(yDistance, xDistance) + 2.5 * Math.PI) % (Math.PI * 2),
-            cell = Math.floor(angle / anglePerCell);
+            cell = Math.floor(angle / anglePerCell),
+            coords = [layer, cell];
 
-        if (cell >= 0 && cell < cellsInThisLayer && layer >= 0 && layer < grid.metadata.layers) {
+        if (grid.getCellByCoordinates(coords)) {
             eventTarget.trigger(EVENT_CLICK, {
-                coords: [layer, cell],
+                coords,
                 shift: event.shift
             });
         }

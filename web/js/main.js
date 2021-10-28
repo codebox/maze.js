@@ -101,6 +101,9 @@ export function buildMaze(config) {
         algorithm = algorithms[config.algorithm];
 
     grid.initialise();
+    (config.mask || []).forEach(maskedCoords => {
+        grid.removeCell(maskedCoords);
+    });
     algorithm.fn(grid, {random});
 
     return grid;
