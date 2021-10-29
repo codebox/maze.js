@@ -35,8 +35,12 @@ export const
     METADATA_DISTANCE = 'distance',
     METADATA_PATH = 'path',
     METADATA_MASKED = 'masked',
+    METADATA_CURRENT_CELL = 'current',
+    METADATA_UNPROCESSED_CELL = 'unprocessed',
 
     PATH_COLOUR = '#006BB7',
     CELL_BACKGROUND_COLOUR = 'white',
     CELL_MASKED_COLOUR = 'grey',
+    CELL_UNPROCESSED_CELL_COLOUR = '#bbb',
+    CELL_CURRENT_CELL_COLOUR = PATH_COLOUR,
     WALL_COLOUR = 'black';

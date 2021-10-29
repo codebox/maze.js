@@ -1,7 +1,7 @@
 import {forEachContiguousPair} from './utils.js';
 import {
     ALGORITHM_NONE, ALGORITHM_BINARY_TREE, ALGORITHM_SIDEWINDER, ALGORITHM_ALDOUS_BRODER, ALGORITHM_WILSON, ALGORITHM_HUNT_AND_KILL, ALGORITHM_RECURSIVE_BACKTRACK, ALGORITHM_KRUSKAL,
-    METADATA_VISITED, METADATA_SET_ID,
+    METADATA_VISITED, METADATA_SET_ID, METADATA_CURRENT_CELL, METADATA_UNPROCESSED_CELL,
     DIRECTION_EAST, DIRECTION_SOUTH,
     SHAPE_SQUARE, SHAPE_TRIANGLE, SHAPE_HEXAGON, SHAPE_CIRCLE
 
@@ -27,7 +27,7 @@ export const algorithms = {
             'maskable': true,
             'shapes': [SHAPE_SQUARE, SHAPE_TRIANGLE, SHAPE_HEXAGON, SHAPE_CIRCLE]
         },
-        fn(grid, config) {}
+        fn: function*(grid, config) {}
     },
     [ALGORITHM_BINARY_TREE]: {
         metadata: {
@@ -35,18 +35,22 @@ export const algorithms = {
             'maskable': false,
             'shapes': [SHAPE_SQUARE]
         },
-        fn(grid, config) {
+        fn: function*(grid, config) {
             "use strict";
             const {random} = config;
 
-            grid.forEachCell(cell => {
-                 const
-                     eastNeighbour = cell.neighbours[DIRECTION_EAST],
-                     southNeighbour = cell.neighbours[DIRECTION_SOUTH],
-                     goEast = random.int(2) === 0,
-                     goSouth = !goEast,
-                     linkEast = eastNeighbour && (goEast || !southNeighbour),
-                     linkSouth = southNeighbour && (goSouth || !eastNeighbour);
+            let previousCell;
+            grid.forEachCell(cell => cell.metadata[METADATA_UNPROCESSED_CELL] = true);
+            const allCoords = grid.getAllCellCoords();
+            for (let i = 0; i < allCoords.length; i++) {
+                const
+                    cell = grid.getCellByCoordinates(allCoords[i]),
+                    eastNeighbour = cell.neighbours[DIRECTION_EAST],
+                    southNeighbour = cell.neighbours[DIRECTION_SOUTH],
+                    goEast = random.int(2) === 0,
+                    goSouth = !goEast,
+                    linkEast = eastNeighbour && (goEast || !southNeighbour),
+                    linkSouth = southNeighbour && (goSouth || !eastNeighbour);
 
                 if (linkEast) {
                     grid.link(cell, eastNeighbour);
@@ -54,7 +58,16 @@ export const algorithms = {
                 } else if (linkSouth) {
                     grid.link(cell, southNeighbour);
                 }
-            });
+
+                if (previousCell) {
+                    delete previousCell.metadata[METADATA_CURRENT_CELL]
+                }
+                delete cell.metadata[METADATA_UNPROCESSED_CELL];
+                cell.metadata[METADATA_CURRENT_CELL] = true;
+                previousCell = cell;
+                yield;
+            }
+            delete previousCell.metadata[METADATA_CURRENT_CELL];
         }
     },
     [ALGORITHM_SIDEWINDER]: {
@@ -63,10 +76,11 @@ export const algorithms = {
             'maskable': false,
             'shapes': [SHAPE_SQUARE]
         },
-        fn(grid, config) {
+        fn: function*(grid, config) {
             "use strict";
             const {random} = config;
-
+            grid.forEachCell(cell => cell.metadata[METADATA_UNPROCESSED_CELL] = true);
+            let previousCell;
             for (let y = 0; y < grid.metadata.height; y++) {
                 let currentRun = [];
                 for (let x = 0; x < grid.metadata.width; x++) {
@@ -87,8 +101,17 @@ export const algorithms = {
 
                         currentRun = [];
                     }
+
+                    if (previousCell) {
+                        delete previousCell.metadata[METADATA_CURRENT_CELL]
+                    }
+                    delete cell.metadata[METADATA_UNPROCESSED_CELL];
+                    cell.metadata[METADATA_CURRENT_CELL] = true;
+                    previousCell = cell;
+                    yield;
                 }
             }
+            delete previousCell.metadata[METADATA_CURRENT_CELL];
         }
     },
     [ALGORITHM_ALDOUS_BRODER]: {
@@ -97,10 +120,10 @@ export const algorithms = {
             'maskable': true,
             'shapes': [SHAPE_SQUARE, SHAPE_TRIANGLE, SHAPE_HEXAGON, SHAPE_CIRCLE]
         },
-        fn(grid, config) {
+        fn: function*(grid, config) {
             "use strict";
             const {random} = config;
-            let unvisitedCount = grid.cellCount, currentCell;
+            let unvisitedCount = grid.cellCount, currentCell, previousCell;
 
             function moveTo(nextCell) {
                 if (isUnvisited(nextCell)) {
@@ -113,14 +136,23 @@ export const algorithms = {
                 currentCell = nextCell;
             }
 
+            grid.forEachCell(cell => cell.metadata[METADATA_UNPROCESSED_CELL] = true);
             const startCell = grid.randomCell();
             moveTo(startCell);
 
             while (unvisitedCount) {
                 const nextCell = currentCell.neighbours.random();
+                if (previousCell) {
+                    delete previousCell.metadata[METADATA_CURRENT_CELL]
+                }
+                delete nextCell.metadata[METADATA_UNPROCESSED_CELL];
+                nextCell.metadata[METADATA_CURRENT_CELL] = true;
+                previousCell = nextCell;
+                yield;
+
                 moveTo(nextCell);
             }
-
+            delete previousCell.metadata[METADATA_CURRENT_CELL];
         }
     },
     [ALGORITHM_WILSON]: {
@@ -129,7 +161,7 @@ export const algorithms = {
             'maskable': true,
             'shapes': [SHAPE_SQUARE, SHAPE_TRIANGLE, SHAPE_HEXAGON, SHAPE_CIRCLE]
         },
-        fn(grid, config) {
+        fn: function*(grid, config) {
             "use strict";
             const {random} = config;
 
@@ -141,9 +173,10 @@ export const algorithms = {
                 }
             }
 
+            grid.forEachCell(cell => cell.metadata[METADATA_UNPROCESSED_CELL] = true);
             markAsVisited(grid.randomCell(isUnvisited));
 
-            let currentCell;
+            let currentCell, previousCell
             while (currentCell = grid.randomCell(isUnvisited)) {
                 let currentPath = [currentCell];
 
@@ -159,8 +192,16 @@ export const algorithms = {
                         currentPath.forEach(markAsVisited);
                         break;
                     }
+                    if (previousCell) {
+                        delete previousCell.metadata[METADATA_CURRENT_CELL]
+                    }
+                    delete nextCell.metadata[METADATA_UNPROCESSED_CELL];
+                    nextCell.metadata[METADATA_CURRENT_CELL] = true;
+                    previousCell = nextCell;
+                    yield;
                 }
             }
+            delete previousCell.metadata[METADATA_CURRENT_CELL];
         }
     },
     [ALGORITHM_HUNT_AND_KILL]: {
@@ -169,11 +210,13 @@ export const algorithms = {
             'maskable': true,
             'shapes': [SHAPE_SQUARE, SHAPE_TRIANGLE, SHAPE_HEXAGON, SHAPE_CIRCLE]
         },
-        fn(grid, config) {
+        fn: function*(grid, config) {
             "use strict";
             const {random} = config;
 
-            let currentCell = grid.randomCell();
+            let currentCell = grid.randomCell(), previousCell;
+
+            grid.forEachCell(cell => cell.metadata[METADATA_UNPROCESSED_CELL] = true);
             markAsVisited(currentCell);
 
             while (true) {
@@ -193,7 +236,15 @@ export const algorithms = {
                         break;
                     }
                 }
+                if (previousCell) {
+                    delete previousCell.metadata[METADATA_CURRENT_CELL]
+                }
+                delete currentCell.metadata[METADATA_UNPROCESSED_CELL];
+                currentCell.metadata[METADATA_CURRENT_CELL] = true;
+                previousCell = currentCell;
+                yield;
             }
+            delete previousCell.metadata[METADATA_CURRENT_CELL];
         }
     },
     [ALGORITHM_RECURSIVE_BACKTRACK]: {
@@ -202,10 +253,10 @@ export const algorithms = {
             'maskable': true,
             'shapes': [SHAPE_SQUARE, SHAPE_TRIANGLE, SHAPE_HEXAGON, SHAPE_CIRCLE]
         },
-        fn(grid) {
+        fn: function*(grid) {
             "use strict";
             const stack = [];
-            let currentCell;
+            let currentCell, previousCell;
 
             function visitCell(nextCell) {
                 const previousCell = currentCell;
@@ -217,6 +268,7 @@ export const algorithms = {
                 stack.push(currentCell);
             }
 
+            grid.forEachCell(cell => cell.metadata[METADATA_UNPROCESSED_CELL] = true);
             visitCell(grid.randomCell());
 
             while (stack.length) {
@@ -233,7 +285,15 @@ export const algorithms = {
                         currentCell = stack[stack.length - 1];
                     }
                 }
+                if (previousCell) {
+                    delete previousCell.metadata[METADATA_CURRENT_CELL]
+                }
+                delete currentCell.metadata[METADATA_UNPROCESSED_CELL];
+                currentCell.metadata[METADATA_CURRENT_CELL] = true;
+                previousCell = currentCell;
+                yield;
             }
+            delete previousCell.metadata[METADATA_CURRENT_CELL];
         }
     },
     [ALGORITHM_KRUSKAL]: {
@@ -242,7 +302,7 @@ export const algorithms = {
             'maskable': true,
             'shapes': [SHAPE_SQUARE]
         },
-        fn(grid, config) {
+        fn: function*(grid, config) {
             "use strict";
             const {random} = config;
 
@@ -273,6 +333,8 @@ export const algorithms = {
                 delete connectedSets[id2];
             }
 
+            let previousCell1, previousCell2;
+            grid.forEachCell(cell => cell.metadata[METADATA_UNPROCESSED_CELL] = true);
             while (links.length) {
                 const [cell1, cell2] = links.pop(),
                     id1 = cell1.metadata[METADATA_SET_ID],
@@ -280,8 +342,21 @@ export const algorithms = {
                 if (id1 !== id2) {
                     grid.link(cell1, cell2);
                     mergeSets(id1, id2);
+                    if (previousCell1) {
+                        delete previousCell1.metadata[METADATA_CURRENT_CELL]
+                        delete previousCell2.metadata[METADATA_CURRENT_CELL]
+                    }
+                    delete cell1.metadata[METADATA_UNPROCESSED_CELL];
+                    delete cell2.metadata[METADATA_UNPROCESSED_CELL];
+                    cell1.metadata[METADATA_CURRENT_CELL] = true;
+                    cell2.metadata[METADATA_CURRENT_CELL] = true;
+                    [previousCell1, previousCell2] = [cell1, cell2];
+                    yield;
+
                 }
             }
+            delete previousCell1.metadata[METADATA_CURRENT_CELL];
+            delete previousCell2.metadata[METADATA_CURRENT_CELL];
         }
     }
 };

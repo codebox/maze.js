@@ -1,12 +1,12 @@
 import {buildEventTarget} from './utils.js';
 import {
-    METADATA_DISTANCE, METADATA_PATH, METADATA_MAX_DISTANCE, METADATA_MASKED,
+    METADATA_DISTANCE, METADATA_PATH, METADATA_MAX_DISTANCE, METADATA_MASKED, METADATA_CURRENT_CELL, METADATA_UNPROCESSED_CELL,
     EVENT_CLICK,
     DIRECTION_NORTH, DIRECTION_SOUTH, DIRECTION_EAST, DIRECTION_WEST,
     DIRECTION_NORTH_WEST, DIRECTION_NORTH_EAST, DIRECTION_SOUTH_WEST, DIRECTION_SOUTH_EAST,
     DIRECTION_CLOCKWISE, DIRECTION_ANTICLOCKWISE,
     DIRECTION_INWARDS,
-    CELL_BACKGROUND_COLOUR, WALL_COLOUR, PATH_COLOUR, CELL_MASKED_COLOUR
+    CELL_BACKGROUND_COLOUR, WALL_COLOUR, PATH_COLOUR, CELL_MASKED_COLOUR, CELL_CURRENT_CELL_COLOUR, CELL_UNPROCESSED_CELL_COLOUR,
 } from './constants.js';
 
 function getCellBackgroundColour(cell, grid) {
@@ -17,6 +17,12 @@ function getCellBackgroundColour(cell, grid) {
 
     } else if (cell.metadata[METADATA_MASKED]) {
         return CELL_MASKED_COLOUR;
+
+    } else if (cell.metadata[METADATA_CURRENT_CELL]) {
+        return CELL_CURRENT_CELL_COLOUR;
+
+    } else if (cell.metadata[METADATA_UNPROCESSED_CELL]) {
+        return CELL_UNPROCESSED_CELL_COLOUR;
 
     } else {
         return CELL_BACKGROUND_COLOUR;
@@ -69,6 +75,11 @@ function buildBaseGrid(config) {
     return {
         forEachCell(fn) {
             Object.values(cells).forEach(fn);
+        },
+        getAllCellCoords() {
+            const allCoords = [];
+            this.forEachCell(cell => allCoords.push(cell.coords));
+            return allCoords;
         },
         link(cell1, cell2) {
             console.assert(cell1 !== cell2);

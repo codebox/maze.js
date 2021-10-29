@@ -104,7 +104,16 @@ export function buildMaze(config) {
     (config.mask || []).forEach(maskedCoords => {
         grid.removeCell(maskedCoords);
     });
-    algorithm.fn(grid, {random});
+
+    const iterator = algorithm.fn(grid, {random});
+    grid.runAlgorithm = {
+        oneStep() {
+            return iterator.next().done;
+        },
+        toCompletion() {
+            while(!iterator.next().done);
+        }
+    }
 
     return grid;
 }
