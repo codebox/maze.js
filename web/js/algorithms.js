@@ -165,6 +165,10 @@ export const algorithms = {
             "use strict";
             const {random} = config;
 
+            function markVisited(cell) {
+                cell.metadata[METADATA_VISITED] = true;
+                delete cell.metadata[METADATA_UNPROCESSED_CELL];
+            }
             function removeLoops(cells) {
                 const latestCell = cells[cells.length - 1],
                     indexOfPreviousVisit = cells.findIndex(cell => cell === latestCell);
@@ -174,7 +178,7 @@ export const algorithms = {
             }
 
             grid.forEachCell(cell => cell.metadata[METADATA_UNPROCESSED_CELL] = true);
-            markAsVisited(grid.randomCell(isUnvisited));
+            markVisited(grid.randomCell(isUnvisited));
 
             let currentCell, previousCell
             while (currentCell = grid.randomCell(isUnvisited)) {
@@ -189,13 +193,12 @@ export const algorithms = {
                         currentCell = nextCell;
                     } else {
                         forEachContiguousPair(currentPath, grid.link);
-                        currentPath.forEach(markAsVisited);
+                        currentPath.forEach(markVisited);
                         break;
                     }
                     if (previousCell) {
                         delete previousCell.metadata[METADATA_CURRENT_CELL]
                     }
-                    delete nextCell.metadata[METADATA_UNPROCESSED_CELL];
                     nextCell.metadata[METADATA_CURRENT_CELL] = true;
                     previousCell = nextCell;
                     yield;
@@ -217,6 +220,7 @@ export const algorithms = {
             let currentCell = grid.randomCell(), previousCell;
 
             grid.forEachCell(cell => cell.metadata[METADATA_UNPROCESSED_CELL] = true);
+            delete currentCell.metadata[METADATA_UNPROCESSED_CELL];
             markAsVisited(currentCell);
 
             while (true) {
@@ -269,7 +273,9 @@ export const algorithms = {
             }
 
             grid.forEachCell(cell => cell.metadata[METADATA_UNPROCESSED_CELL] = true);
-            visitCell(grid.randomCell());
+            const startCell = grid.randomCell();
+            visitCell(startCell);
+            delete startCell.metadata[METADATA_UNPROCESSED_CELL];
 
             while (stack.length) {
                 const nextCell = currentCell.neighbours.random(isUnvisited);
