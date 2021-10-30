@@ -1,12 +1,11 @@
 import {forEachContiguousPair} from './utils.js';
 import {
-    ALGORITHM_NONE, ALGORITHM_BINARY_TREE, ALGORITHM_SIDEWINDER, ALGORITHM_ALDOUS_BRODER, ALGORITHM_WILSON, ALGORITHM_HUNT_AND_KILL, ALGORITHM_RECURSIVE_BACKTRACK, ALGORITHM_KRUSKAL,
+    ALGORITHM_NONE, ALGORITHM_BINARY_TREE, ALGORITHM_SIDEWINDER, ALGORITHM_ALDOUS_BRODER, ALGORITHM_WILSON, ALGORITHM_HUNT_AND_KILL,
+    ALGORITHM_RECURSIVE_BACKTRACK, ALGORITHM_KRUSKAL,
     METADATA_VISITED, METADATA_SET_ID, METADATA_CURRENT_CELL, METADATA_UNPROCESSED_CELL,
     DIRECTION_EAST, DIRECTION_SOUTH,
     SHAPE_SQUARE, SHAPE_TRIANGLE, SHAPE_HEXAGON, SHAPE_CIRCLE
-
 } from './constants.js';
-
 
 function markAsVisited(cell) {
     cell.metadata[METADATA_VISITED] = true;
@@ -18,6 +17,27 @@ function isVisited(cell) {
 
 function isUnvisited(cell) {
     return !isVisited(cell);
+}
+
+function algorithmProgress(grid) {
+    let previousCells;
+
+    grid.forEachCell(cell => cell.metadata[METADATA_UNPROCESSED_CELL] = true);
+
+    return {
+        step(...cells) {
+            this.current(...cells);
+            cells.forEach(cell => delete cell.metadata[METADATA_UNPROCESSED_CELL]);
+        },
+        current(...cells) {
+            (previousCells || []).forEach(previousCell => delete previousCell.metadata[METADATA_CURRENT_CELL]);
+            cells.forEach(cell => cell.metadata[METADATA_CURRENT_CELL] = true);
+            previousCells = cells;
+        },
+        finished() {
+            (previousCells || []).forEach(previousCell => delete previousCell.metadata[METADATA_CURRENT_CELL]);
+        }
+    };
 }
 
 export const algorithms = {
@@ -37,11 +57,10 @@ export const algorithms = {
         },
         fn: function*(grid, config) {
             "use strict";
-            const {random} = config;
+            const {random} = config,
+                allCoords = grid.getAllCellCoords(),
+                progress = algorithmProgress(grid);
 
-            let previousCell;
-            grid.forEachCell(cell => cell.metadata[METADATA_UNPROCESSED_CELL] = true);
-            const allCoords = grid.getAllCellCoords();
             for (let i = 0; i < allCoords.length; i++) {
                 const
                     cell = grid.getCellByCoordinates(allCoords[i]),
@@ -58,16 +77,10 @@ export const algorithms = {
                 } else if (linkSouth) {
                     grid.link(cell, southNeighbour);
                 }
-
-                if (previousCell) {
-                    delete previousCell.metadata[METADATA_CURRENT_CELL]
-                }
-                delete cell.metadata[METADATA_UNPROCESSED_CELL];
-                cell.metadata[METADATA_CURRENT_CELL] = true;
-                previousCell = cell;
+                progress.step(cell);
                 yield;
             }
-            delete previousCell.metadata[METADATA_CURRENT_CELL];
+            progress.finished();
         }
     },
     [ALGORITHM_SIDEWINDER]: {
@@ -78,9 +91,9 @@ export const algorithms = {
         },
         fn: function*(grid, config) {
             "use strict";
-            const {random} = config;
-            grid.forEachCell(cell => cell.metadata[METADATA_UNPROCESSED_CELL] = true);
-            let previousCell;
+            const {random} = config,
+                progress = algorithmProgress(grid);
+
             for (let y = 0; y < grid.metadata.height; y++) {
                 let currentRun = [];
                 for (let x = 0; x < grid.metadata.width; x++) {
@@ -102,16 +115,11 @@ export const algorithms = {
                         currentRun = [];
                     }
 
-                    if (previousCell) {
-                        delete previousCell.metadata[METADATA_CURRENT_CELL]
-                    }
-                    delete cell.metadata[METADATA_UNPROCESSED_CELL];
-                    cell.metadata[METADATA_CURRENT_CELL] = true;
-                    previousCell = cell;
+                    progress.step(cell);
                     yield;
                 }
             }
-            delete previousCell.metadata[METADATA_CURRENT_CELL];
+            progress.finished();
         }
     },
     [ALGORITHM_ALDOUS_BRODER]: {
@@ -122,8 +130,8 @@ export const algorithms = {
         },
         fn: function*(grid, config) {
             "use strict";
-            const {random} = config;
-            let unvisitedCount = grid.cellCount, currentCell, previousCell;
+            const progress = algorithmProgress(grid);
+            let unvisitedCount = grid.cellCount, currentCell;
 
             function moveTo(nextCell) {
                 if (isUnvisited(nextCell)) {
@@ -133,26 +141,19 @@ export const algorithms = {
                         grid.link(currentCell, nextCell);
                     }
                 }
-                currentCell = nextCell;
+                progress.step(currentCell = nextCell);
             }
 
-            grid.forEachCell(cell => cell.metadata[METADATA_UNPROCESSED_CELL] = true);
             const startCell = grid.randomCell();
             moveTo(startCell);
 
             while (unvisitedCount) {
                 const nextCell = currentCell.neighbours.random();
-                if (previousCell) {
-                    delete previousCell.metadata[METADATA_CURRENT_CELL]
-                }
-                delete nextCell.metadata[METADATA_UNPROCESSED_CELL];
-                nextCell.metadata[METADATA_CURRENT_CELL] = true;
-                previousCell = nextCell;
                 yield;
 
                 moveTo(nextCell);
             }
-            delete previousCell.metadata[METADATA_CURRENT_CELL];
+            progress.finished();
         }
     },
     [ALGORITHM_WILSON]: {
@@ -163,11 +164,11 @@ export const algorithms = {
         },
         fn: function*(grid, config) {
             "use strict";
-            const {random} = config;
+            const progress = algorithmProgress(grid);
 
             function markVisited(cell) {
+                progress.step(cell);
                 cell.metadata[METADATA_VISITED] = true;
-                delete cell.metadata[METADATA_UNPROCESSED_CELL];
             }
             function removeLoops(cells) {
                 const latestCell = cells[cells.length - 1],
@@ -177,16 +178,16 @@ export const algorithms = {
                 }
             }
 
-            grid.forEachCell(cell => cell.metadata[METADATA_UNPROCESSED_CELL] = true);
             markVisited(grid.randomCell(isUnvisited));
 
-            let currentCell, previousCell
+            let currentCell;
             while (currentCell = grid.randomCell(isUnvisited)) {
                 let currentPath = [currentCell];
 
                 while (true) {
                     const nextCell = currentCell.neighbours.random();
                     currentPath.push(nextCell);
+                    progress.current(nextCell);
 
                     if (isUnvisited(nextCell)) {
                         removeLoops(currentPath);
@@ -196,15 +197,10 @@ export const algorithms = {
                         currentPath.forEach(markVisited);
                         break;
                     }
-                    if (previousCell) {
-                        delete previousCell.metadata[METADATA_CURRENT_CELL]
-                    }
-                    nextCell.metadata[METADATA_CURRENT_CELL] = true;
-                    previousCell = nextCell;
                     yield;
                 }
             }
-            delete previousCell.metadata[METADATA_CURRENT_CELL];
+            progress.finished();
         }
     },
     [ALGORITHM_HUNT_AND_KILL]: {
@@ -215,12 +211,11 @@ export const algorithms = {
         },
         fn: function*(grid, config) {
             "use strict";
-            const {random} = config;
+            const progress = algorithmProgress(grid);
 
-            let currentCell = grid.randomCell(), previousCell;
+            let currentCell = grid.randomCell();
 
-            grid.forEachCell(cell => cell.metadata[METADATA_UNPROCESSED_CELL] = true);
-            delete currentCell.metadata[METADATA_UNPROCESSED_CELL];
+            progress.step(currentCell);
             markAsVisited(currentCell);
 
             while (true) {
@@ -240,15 +235,10 @@ export const algorithms = {
                         break;
                     }
                 }
-                if (previousCell) {
-                    delete previousCell.metadata[METADATA_CURRENT_CELL]
-                }
-                delete currentCell.metadata[METADATA_UNPROCESSED_CELL];
-                currentCell.metadata[METADATA_CURRENT_CELL] = true;
-                previousCell = currentCell;
+                progress.step(currentCell);
                 yield;
             }
-            delete previousCell.metadata[METADATA_CURRENT_CELL];
+            progress.finished();
         }
     },
     [ALGORITHM_RECURSIVE_BACKTRACK]: {
@@ -259,8 +249,8 @@ export const algorithms = {
         },
         fn: function*(grid) {
             "use strict";
-            const stack = [];
-            let currentCell, previousCell;
+            const stack = [], progress = algorithmProgress(grid);
+            let currentCell;
 
             function visitCell(nextCell) {
                 const previousCell = currentCell;
@@ -272,10 +262,9 @@ export const algorithms = {
                 stack.push(currentCell);
             }
 
-            grid.forEachCell(cell => cell.metadata[METADATA_UNPROCESSED_CELL] = true);
             const startCell = grid.randomCell();
             visitCell(startCell);
-            delete startCell.metadata[METADATA_UNPROCESSED_CELL];
+            progress.step(startCell);
 
             while (stack.length) {
                 const nextCell = currentCell.neighbours.random(isUnvisited);
@@ -291,15 +280,10 @@ export const algorithms = {
                         currentCell = stack[stack.length - 1];
                     }
                 }
-                if (previousCell) {
-                    delete previousCell.metadata[METADATA_CURRENT_CELL]
-                }
-                delete currentCell.metadata[METADATA_UNPROCESSED_CELL];
-                currentCell.metadata[METADATA_CURRENT_CELL] = true;
-                previousCell = currentCell;
+                progress.step(currentCell);
                 yield;
             }
-            delete previousCell.metadata[METADATA_CURRENT_CELL];
+            progress.finished();
         }
     },
     [ALGORITHM_KRUSKAL]: {
@@ -310,10 +294,11 @@ export const algorithms = {
         },
         fn: function*(grid, config) {
             "use strict";
-            const {random} = config;
+            const {random} = config,
+                links = [],
+                connectedSets = {},
+                progress = algorithmProgress(grid);
 
-            const links = [],
-                connectedSets = {};
             grid.forEachCell(cell => {
                 const
                     eastNeighbour = cell.neighbours[DIRECTION_EAST],
@@ -339,8 +324,6 @@ export const algorithms = {
                 delete connectedSets[id2];
             }
 
-            let previousCell1, previousCell2;
-            grid.forEachCell(cell => cell.metadata[METADATA_UNPROCESSED_CELL] = true);
             while (links.length) {
                 const [cell1, cell2] = links.pop(),
                     id1 = cell1.metadata[METADATA_SET_ID],
@@ -348,21 +331,12 @@ export const algorithms = {
                 if (id1 !== id2) {
                     grid.link(cell1, cell2);
                     mergeSets(id1, id2);
-                    if (previousCell1) {
-                        delete previousCell1.metadata[METADATA_CURRENT_CELL]
-                        delete previousCell2.metadata[METADATA_CURRENT_CELL]
-                    }
-                    delete cell1.metadata[METADATA_UNPROCESSED_CELL];
-                    delete cell2.metadata[METADATA_UNPROCESSED_CELL];
-                    cell1.metadata[METADATA_CURRENT_CELL] = true;
-                    cell2.metadata[METADATA_CURRENT_CELL] = true;
-                    [previousCell1, previousCell2] = [cell1, cell2];
+                    progress.step(cell1, cell2);
                     yield;
 
                 }
             }
-            delete previousCell1.metadata[METADATA_CURRENT_CELL];
-            delete previousCell2.metadata[METADATA_CURRENT_CELL];
+            progress.finished();
         }
     }
 };
