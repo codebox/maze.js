@@ -330,7 +330,7 @@ export function buildTriangularGrid(config) {
             });
         }
     });
-    drawingSurface.setSpaceRequirements(0.5 + grid.metadata.width/2, grid.metadata.height * verticalAltitude);
+    drawingSurface.setSpaceRequirements(0.5 + grid.metadata.width/2, grid.metadata.height * verticalAltitude, 0.8);
 
     function hasBaseOnSouthSide(x,y) {
         return (x+y) % 2;
@@ -471,7 +471,7 @@ export function buildHexagonalGrid(config) {
         yOffset3 = 2,
         xOffset = Math.sin(Math.PI / 3);
 
-    drawingSurface.setSpaceRequirements(grid.metadata.width * 2 * xOffset + Math.min(1, grid.metadata.height - 1) * xOffset, grid.metadata.height * yOffset2 + yOffset1);
+    drawingSurface.setSpaceRequirements(grid.metadata.width * 2 * xOffset + Math.min(1, grid.metadata.height - 1) * xOffset, grid.metadata.height * yOffset2 + yOffset1, 1.5);
 
     drawingSurface.on(EVENT_CLICK, event => {
         const ty = (event.y / (2 - yOffset1)) % 1;
@@ -634,7 +634,7 @@ export function buildCircularGrid(config) {
         cellCounts = cellCountsForLayers(config.layers),
         {drawingSurface} = config;
 
-    drawingSurface.setSpaceRequirements(grid.metadata.layers * 2, grid.metadata.layers * 2,);
+    drawingSurface.setSpaceRequirements(grid.metadata.layers * 2, grid.metadata.layers * 2, 1.5);
 
     const cx = grid.metadata.layers,
         cy = grid.metadata.layers;

@@ -41,9 +41,12 @@ export const drawingSurfaces = {
             clear() {
                 ctx.clearRect(0, 0, width, height);
             },
-            setSpaceRequirements(requiredWidth, requiredHeight) {
-                const LINE_WIDTH_CONST = 0.1,
-                    lineWidth = LINE_WIDTH_CONST * Math.min(width/requiredWidth, height/requiredHeight);
+            setSpaceRequirements(requiredWidth, requiredHeight, shapeSpecificLineWidthAdjustment = 1) {
+                const GLOBAL_LINE_WIDTH_ADJUSTMENT = 0.1,
+                    verticalLineWidth = height * GLOBAL_LINE_WIDTH_ADJUSTMENT * shapeSpecificLineWidthAdjustment / requiredHeight,
+                    horizontalLineWidth = width * GLOBAL_LINE_WIDTH_ADJUSTMENT * shapeSpecificLineWidthAdjustment / requiredWidth,
+                    lineWidth = Math.min(verticalLineWidth, horizontalLineWidth);
+
                 magnification = Math.min((width - lineWidth)/requiredWidth, (height - lineWidth)/requiredHeight);
                 ctx.lineWidth = lineWidth;
                 xOffset = lineWidth / 2;
