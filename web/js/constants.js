@@ -37,6 +37,13 @@ export const
     METADATA_MASKED = 'masked',
     METADATA_CURRENT_CELL = 'current',
     METADATA_UNPROCESSED_CELL = 'unprocessed',
+    METADATA_START_CELL = 'startCell',
+    METADATA_END_CELL = 'endCell',
+
+    EXITS_NONE = 'no exits',
+    EXITS_HARDEST = 'hardest',
+    EXITS_HORIZONTAL = 'horizontal',
+    EXITS_VERTICAL = 'vertical',
 
     PATH_COLOUR = '#006BB7',
     CELL_BACKGROUND_COLOUR = 'white',

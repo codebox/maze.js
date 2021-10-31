@@ -92,6 +92,7 @@ export function buildMaze(config) {
         width: config.grid.width,
         height: config.grid.height,
         layers: config.grid.layers,
+        exitConfig: config.exitConfig,
         random,
         drawingSurface: drawingSurfaces[config.element.tagName.toLowerCase()]({
             el: config.element,
@@ -108,24 +109,13 @@ export function buildMaze(config) {
     const iterator = algorithm.fn(grid, {random});
     grid.runAlgorithm = {
         oneStep() {
-            return iterator.next().done;
+            return iterator.next().done && (grid.placeExits() || true);
         },
         toCompletion() {
             while(!iterator.next().done);
+            grid.placeExits();
         }
-    }
+    };
 
     return grid;
 }
-
-// const maze = buildMaze({
-//     'grid': {
-//         'cellShape': 'triangle',
-//         'width': SIZE * 1.7,
-//         'height': SIZE
-//     },
-//     'algorithm': 'wilson',
-//     'element': document.getElementById('canvas1')
-// });
-// maze.findPathBetween([0,0], [SIZE-1, SIZE-1])
-// maze.render()
