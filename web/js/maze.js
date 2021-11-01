@@ -6,7 +6,7 @@ import {
     DIRECTION_NORTH, DIRECTION_SOUTH, DIRECTION_EAST, DIRECTION_WEST,
     DIRECTION_NORTH_WEST, DIRECTION_NORTH_EAST, DIRECTION_SOUTH_WEST, DIRECTION_SOUTH_EAST,
     DIRECTION_CLOCKWISE, DIRECTION_ANTICLOCKWISE,
-    DIRECTION_INWARDS,
+    DIRECTION_INWARDS, DIRECTION_OUTWARDS,
     CELL_BACKGROUND_COLOUR, WALL_COLOUR, PATH_COLOUR, CELL_MASKED_COLOUR, CELL_CURRENT_CELL_COLOUR, CELL_UNPROCESSED_CELL_COLOUR,
     EXITS_NONE, EXITS_HORIZONTAL, EXITS_VERTICAL, EXITS_HARDEST
 } from './constants.js';
@@ -528,21 +528,112 @@ export function buildTriangularGrid(config) {
                 northNeighbour = cell.neighbours[DIRECTION_NORTH],
                 southNeighbour = cell.neighbours[DIRECTION_SOUTH],
                 eastNeighbour = cell.neighbours[DIRECTION_EAST],
-                westNeighbour = cell.neighbours[DIRECTION_WEST];
+                westNeighbour = cell.neighbours[DIRECTION_WEST],
+                exitDirection = cell.metadata[METADATA_START_CELL] || cell.metadata[METADATA_END_CELL];
 
             const [p1x, p1y, p2x, p2y, p3x, p3y] = getCornerCoords(x, y),
                 northOrSouthNeighbour = hasBaseOnSouthSide(x, y) ? southNeighbour : northNeighbour;
 
-            if (!northOrSouthNeighbour || !cell.isLinkedTo(northOrSouthNeighbour)) {
+            if ((!northOrSouthNeighbour || !cell.isLinkedTo(northOrSouthNeighbour)) && ![DIRECTION_NORTH, DIRECTION_SOUTH].includes(exitDirection)) {
                 drawingSurface.line(p1x, p1y, p3x, p3y);
             }
-            if (!eastNeighbour || !cell.isLinkedTo(eastNeighbour)) {
+            if ((!eastNeighbour || !cell.isLinkedTo(eastNeighbour)) && !(exitDirection === DIRECTION_EAST)) {
                 drawingSurface.line(p2x, p2y, p3x, p3y);
             }
-            if (!westNeighbour || !cell.isLinkedTo(westNeighbour)) {
+            if ((!westNeighbour || !cell.isLinkedTo(westNeighbour)) && !(exitDirection === DIRECTION_WEST)) {
                 drawingSurface.line(p1x, p1y, p2x, p2y);
             }
         });
+    };
+
+    function findHardestExits() {
+        let edgeCells = [];
+
+        grid.forEachCell(cell => {
+            const [x,y] = cell.coords;
+
+            if (cell.neighbours.toArray().length !== 3) {
+                edgeCells.push(cell);
+            }
+        });
+
+        function findRandomMissingNeighbourDirection(cell) {
+            const directions = [DIRECTION_EAST, DIRECTION_WEST];
+            if (hasBaseOnSouthSide(...cell.coords)) {
+                directions.push(DIRECTION_SOUTH);
+            } else {
+                directions.push(DIRECTION_NORTH);
+            }
+            const missingNeighbourDirections = directions.filter(direction => !cell.neighbours[direction]);
+            return config.random.choice(missingNeighbourDirections);
+        }
+
+        function findFurthestEdgeCellFrom(startCell) {
+            let maxDistance = 0, furthestEdgeCell;
+
+            grid.findDistancesFrom(startCell.coords);
+
+            edgeCells.forEach(edgeCell => {
+                const distance = edgeCell.metadata[METADATA_DISTANCE];
+                if (distance > maxDistance) {
+                    maxDistance = distance;
+                    furthestEdgeCell = edgeCell;
+                }
+            });
+            grid.clearDistances();
+
+            return furthestEdgeCell;
+        }
+
+        const tmpStartCell = config.random.choice(edgeCells),
+            endCell = findFurthestEdgeCellFrom(tmpStartCell),
+            startCell = findFurthestEdgeCellFrom(endCell);
+
+        startCell.metadata[METADATA_START_CELL] = findRandomMissingNeighbourDirection(startCell);
+        endCell.metadata[METADATA_END_CELL] = findRandomMissingNeighbourDirection(endCell);
+    }
+
+    function findVerticalExits() {
+        const centerX = Math.round(grid.metadata.width / 2) - 1;
+        let minY = Number.MAX_VALUE, maxY = Number.MIN_VALUE;
+        grid.forEachCell(cell => {
+            const [x,y] = cell.coords;
+            if (x === centerX) {
+                minY = Math.min(minY, y);
+                maxY = Math.max(maxY, y);
+            }
+        });
+        grid.getCellByCoordinates(centerX, maxY).metadata[METADATA_START_CELL] = DIRECTION_SOUTH;
+        grid.getCellByCoordinates(centerX, minY).metadata[METADATA_END_CELL] = DIRECTION_NORTH;
+    }
+
+    function findHorizontalExits() {
+        const centerY = Math.round(grid.metadata.height / 2) - 1;
+        let minX = Number.MAX_VALUE, maxX = Number.MIN_VALUE;
+        grid.forEachCell(cell => {
+            const [x,y] = cell.coords;
+            if (y === centerY) {
+                minX = Math.min(minX, x);
+                maxX = Math.max(maxX, x);
+            }
+        });
+        grid.getCellByCoordinates(minX, centerY).metadata[METADATA_START_CELL] = DIRECTION_WEST;
+        grid.getCellByCoordinates(maxX, centerY).metadata[METADATA_END_CELL] = DIRECTION_EAST;
+    }
+
+    grid.placeExits = function() {
+        const exitConfig = config.exitConfig;
+
+        if (exitConfig === EXITS_HARDEST) {
+            findHardestExits();
+
+        } else if (exitConfig === EXITS_VERTICAL) {
+            findVerticalExits();
+
+        } else if (exitConfig === EXITS_HORIZONTAL) {
+            findHorizontalExits();
+        }
+
     };
 
     return grid;
@@ -670,25 +761,25 @@ export function buildHexagonalGrid(config) {
                 northWestNeighbour = cell.neighbours[DIRECTION_NORTH_WEST],
                 southEastNeighbour = cell.neighbours[DIRECTION_SOUTH_EAST],
                 southWestNeighbour = cell.neighbours[DIRECTION_SOUTH_WEST],
-
+                exitDirection = cell.metadata[METADATA_START_CELL] || cell.metadata[METADATA_END_CELL],
                 [p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y, p5x, p5y, p6x, p6y] = getCornerCoords(x, y);
 
-            if (!eastNeighbour || !cell.isLinkedTo(eastNeighbour)) {
+            if ((!eastNeighbour || !cell.isLinkedTo(eastNeighbour)) && !(exitDirection === DIRECTION_EAST)) {
                 drawingSurface.line(p4x, p4y, p5x, p5y);
             }
-            if (!westNeighbour || !cell.isLinkedTo(westNeighbour)) {
+            if ((!westNeighbour || !cell.isLinkedTo(westNeighbour)) && !(exitDirection === DIRECTION_WEST)) {
                 drawingSurface.line(p1x, p1y, p2x, p2y);
             }
-            if (!northEastNeighbour || !cell.isLinkedTo(northEastNeighbour)) {
+            if ((!northEastNeighbour || !cell.isLinkedTo(northEastNeighbour)) && !(exitDirection === DIRECTION_NORTH_EAST)) {
                 drawingSurface.line(p5x, p5y, p6x, p6y);
             }
-            if (!northWestNeighbour || !cell.isLinkedTo(northWestNeighbour)) {
+            if ((!northWestNeighbour || !cell.isLinkedTo(northWestNeighbour)) && !(exitDirection === DIRECTION_NORTH_WEST)) {
                 drawingSurface.line(p1x, p1y, p6x, p6y);
             }
-            if (!southEastNeighbour || !cell.isLinkedTo(southEastNeighbour)) {
+            if ((!southEastNeighbour || !cell.isLinkedTo(southEastNeighbour)) && !(exitDirection === DIRECTION_SOUTH_EAST)) {
                 drawingSurface.line(p3x, p3y, p4x, p4y);
             }
-            if (!southWestNeighbour || !cell.isLinkedTo(southWestNeighbour)) {
+            if ((!southWestNeighbour || !cell.isLinkedTo(southWestNeighbour)) && !(exitDirection === DIRECTION_SOUTH_WEST)) {
                 drawingSurface.line(p2x, p2y, p3x, p3y);
             }
         });
@@ -709,7 +800,89 @@ export function buildHexagonalGrid(config) {
             });
             drawingSurface.setColour(WALL_COLOUR);
         }
+    };
 
+    function findHardestExits() {
+        let edgeCells = [];
+
+        grid.forEachCell(cell => {
+            const [x,y] = cell.coords;
+
+            if (cell.neighbours.toArray().length !== 6) {
+                edgeCells.push(cell);
+            }
+        });
+
+        function findRandomMissingNeighbourDirection(cell) {
+            const missingNeighbourDirections = [DIRECTION_WEST, DIRECTION_EAST, DIRECTION_NORTH_EAST, DIRECTION_NORTH_WEST, DIRECTION_SOUTH_EAST, DIRECTION_SOUTH_WEST].filter(direction => !cell.neighbours[direction]);
+            return config.random.choice(missingNeighbourDirections);
+        }
+
+        function findFurthestEdgeCellFrom(startCell) {
+            let maxDistance = 0, furthestEdgeCell;
+
+            grid.findDistancesFrom(startCell.coords);
+
+            edgeCells.forEach(edgeCell => {
+                const distance = edgeCell.metadata[METADATA_DISTANCE];
+                if (distance > maxDistance) {
+                    maxDistance = distance;
+                    furthestEdgeCell = edgeCell;
+                }
+            });
+            grid.clearDistances();
+
+            return furthestEdgeCell;
+        }
+
+        const tmpStartCell = config.random.choice(edgeCells),
+            endCell = findFurthestEdgeCellFrom(tmpStartCell),
+            startCell = findFurthestEdgeCellFrom(endCell);
+
+        startCell.metadata[METADATA_START_CELL] = findRandomMissingNeighbourDirection(startCell);
+        endCell.metadata[METADATA_END_CELL] = findRandomMissingNeighbourDirection(endCell);
+    }
+
+    function findVerticalExits() {
+        const centerX = Math.round(grid.metadata.width / 2) - 1;
+        let minY = Number.MAX_VALUE, maxY = Number.MIN_VALUE;
+        grid.forEachCell(cell => {
+            const [x,y] = cell.coords;
+            if (x === centerX) {
+                minY = Math.min(minY, y);
+                maxY = Math.max(maxY, y);
+            }
+        });
+        grid.getCellByCoordinates(centerX, maxY).metadata[METADATA_START_CELL] = DIRECTION_SOUTH_EAST;
+        grid.getCellByCoordinates(centerX, minY).metadata[METADATA_END_CELL] = DIRECTION_NORTH_EAST;
+    }
+
+    function findHorizontalExits() {
+        const centerY = Math.round(grid.metadata.height / 2) - 1;
+        let minX = Number.MAX_VALUE, maxX = Number.MIN_VALUE;
+        grid.forEachCell(cell => {
+            const [x,y] = cell.coords;
+            if (y === centerY) {
+                minX = Math.min(minX, x);
+                maxX = Math.max(maxX, x);
+            }
+        });
+        grid.getCellByCoordinates(minX, centerY).metadata[METADATA_START_CELL] = DIRECTION_WEST;
+        grid.getCellByCoordinates(maxX, centerY).metadata[METADATA_END_CELL] = DIRECTION_EAST;
+    }
+
+    grid.placeExits = function() {
+        const exitConfig = config.exitConfig;
+
+        if (exitConfig === EXITS_HARDEST) {
+            findHardestExits();
+
+        } else if (exitConfig === EXITS_VERTICAL) {
+            findVerticalExits();
+
+        } else if (exitConfig === EXITS_HORIZONTAL) {
+            findHorizontalExits();
+        }
     };
 
     return grid;
@@ -779,7 +952,7 @@ export function buildCircularGrid(config) {
                         outerNeighbourCount = cellsInNextLayer / cellsInLayer;
                     for (let o = 0; o < outerNeighbourCount; o++) {
                         const outerNeighbour = grid.getCellByCoordinates(l+1, c * outerNeighbourCount + o);
-                        grid.makeNeighbours({cell, direction: DIRECTION_INWARDS}, {cell: outerNeighbour, direction: `DIRECTION_OUTWARDS_${o}`});
+                        grid.makeNeighbours({cell, direction: DIRECTION_INWARDS}, {cell: outerNeighbour, direction: `${DIRECTION_OUTWARDS}_${o}`});
                     }
                 }
             }
@@ -820,10 +993,13 @@ export function buildCircularGrid(config) {
             "use strict";
             const [l,c] = cell.coords,
                 [startAngle, endAngle, innerDistance, outerDistance] = getCellCoords(l, c),
-                outermostLayer = l === grid.metadata.layers - 1,
                 clockwiseNeighbour = cell.neighbours[DIRECTION_CLOCKWISE],
                 anticlockwiseNeighbour = cell.neighbours[DIRECTION_ANTICLOCKWISE],
-                inwardsNeighbour = cell.neighbours[DIRECTION_INWARDS];
+                inwardsNeighbour = cell.neighbours[DIRECTION_INWARDS],
+                anticlockwiseOutsideNeighbour = cell.neighbours[`${DIRECTION_OUTWARDS}_0`],
+                clockwiseOutsideNeighbour = cell.neighbours[`${DIRECTION_OUTWARDS}_1`],
+                isOutermostLayer = l === grid.metadata.layers - 1,
+                isStartCell = cell.metadata[METADATA_START_CELL];
 
             if (l > 0) {
                 if (!cell.isLinkedTo(anticlockwiseNeighbour)) {
@@ -835,8 +1011,18 @@ export function buildCircularGrid(config) {
                 if (!cell.isLinkedTo(inwardsNeighbour)) {
                     drawingSurface.arc(cx, cy, innerDistance, startAngle, endAngle);
                 }
-                if (outermostLayer) {
+                const nextLaterOutHasSameNumberOfCells = (cellCounts[l] === cellCounts[l+1]);
+                if ((isOutermostLayer || (nextLaterOutHasSameNumberOfCells && !cell.isLinkedTo(anticlockwiseOutsideNeighbour))) && !isStartCell) {
                     drawingSurface.arc(cx, cy, outerDistance, startAngle, endAngle);
+
+                } else if (!nextLaterOutHasSameNumberOfCells) {
+                    const halfwayAngle = (endAngle + startAngle) / 2;
+                    if (!cell.isLinkedTo(anticlockwiseOutsideNeighbour) && !isStartCell) {
+                        drawingSurface.arc(cx, cy, outerDistance, startAngle, halfwayAngle);
+                    }
+                    if (!cell.isLinkedTo(clockwiseOutsideNeighbour) && !isStartCell) {
+                        drawingSurface.arc(cx, cy, outerDistance, halfwayAngle, endAngle);
+                    }
                 }
             }
         });
@@ -1065,7 +1251,83 @@ export function buildCircularGrid(config) {
             }
             drawingSurface.setColour(WALL_COLOUR);
         }
+    };
 
+    function findHardestExits() {
+        let edgeCells = [];
+
+        grid.forEachCell(cell => {
+            if (!cell.neighbours[`${DIRECTION_OUTWARDS}_0`] && !cell.neighbours[`${DIRECTION_OUTWARDS}_1`]) {
+                edgeCells.push(cell);
+            }
+        });
+
+        function findFurthestEdgeCellFrom(startCell) {
+            let maxDistance = 0, furthestEdgeCell;
+
+            grid.findDistancesFrom(startCell.coords);
+
+            edgeCells.forEach(edgeCell => {
+                const distance = edgeCell.metadata[METADATA_DISTANCE];
+                if (distance > maxDistance) {
+                    maxDistance = distance;
+                    furthestEdgeCell = edgeCell;
+                }
+            });
+            grid.clearDistances();
+
+            return furthestEdgeCell;
+        }
+
+        const endCell = grid.getCellByCoordinates(0, 0),
+            startCell = findFurthestEdgeCellFrom(endCell);
+
+        startCell.metadata[METADATA_START_CELL] = DIRECTION_OUTWARDS;
+        endCell.metadata[METADATA_END_CELL] = DIRECTION_OUTWARDS;
+    }
+
+    function findVerticalExits() {
+        grid.getCellByCoordinates(0, 0).metadata[METADATA_END_CELL] = DIRECTION_OUTWARDS;
+
+        let layerIndex = grid.metadata.layers - 1;
+        while(layerIndex > 0) {
+            const bottomCellIndex = cellCounts[layerIndex] / 2,
+                bottomCellOnThisLayer = grid.getCellByCoordinates(layerIndex, bottomCellIndex);
+            if (bottomCellOnThisLayer) {
+                bottomCellOnThisLayer.metadata[METADATA_START_CELL] = DIRECTION_OUTWARDS;
+                return;
+            }
+            layerIndex--;
+        }
+    }
+
+    function findHorizontalExits() {
+        grid.getCellByCoordinates(0, 0).metadata[METADATA_END_CELL] = DIRECTION_OUTWARDS;
+
+        let layerIndex = grid.metadata.layers - 1;
+        while(layerIndex > 0) {
+            const leftCellIndex = Math.round(0.75 * cellCounts[layerIndex]),
+                leftCellOnThisLayer = grid.getCellByCoordinates(layerIndex, leftCellIndex);
+            if (leftCellOnThisLayer) {
+                leftCellOnThisLayer.metadata[METADATA_START_CELL] = DIRECTION_OUTWARDS;
+                return;
+            }
+            layerIndex--;
+        }
+    }
+
+    grid.placeExits = function() {
+        const exitConfig = config.exitConfig;
+
+        if (exitConfig === EXITS_HARDEST) {
+            findHardestExits();
+
+        } else if (exitConfig === EXITS_VERTICAL) {
+            findVerticalExits();
+
+        } else if (exitConfig === EXITS_HORIZONTAL) {
+            findHorizontalExits();
+        }
     };
 
     return grid;
