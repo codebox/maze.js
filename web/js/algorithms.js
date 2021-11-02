@@ -1,7 +1,7 @@
 import {forEachContiguousPair} from './utils.js';
 import {
     ALGORITHM_NONE, ALGORITHM_BINARY_TREE, ALGORITHM_SIDEWINDER, ALGORITHM_ALDOUS_BRODER, ALGORITHM_WILSON, ALGORITHM_HUNT_AND_KILL,
-    ALGORITHM_RECURSIVE_BACKTRACK, ALGORITHM_KRUSKAL,
+    ALGORITHM_RECURSIVE_BACKTRACK, ALGORITHM_KRUSKAL, ALGORITHM_SIMPLIFIED_PRIMS,
     METADATA_VISITED, METADATA_SET_ID, METADATA_CURRENT_CELL, METADATA_UNPROCESSED_CELL,
     DIRECTION_EAST, DIRECTION_SOUTH,
     SHAPE_SQUARE, SHAPE_TRIANGLE, SHAPE_HEXAGON, SHAPE_CIRCLE
@@ -337,6 +337,41 @@ export const algorithms = {
                 }
             }
             progress.finished();
+        }
+    },
+    [ALGORITHM_SIMPLIFIED_PRIMS]: {
+        metadata: {
+            'description': 'Simplified Prims',
+            'maskable': true,
+            'shapes': [SHAPE_SQUARE, SHAPE_TRIANGLE, SHAPE_HEXAGON, SHAPE_CIRCLE]
+        },
+        fn: function*(grid, config) {
+            function addToActive(cell) {
+                active.push(cell);
+                cell.metadata[METADATA_VISITED] = true;
+                progress.step(cell);
+            }
+            const {random} = config,
+                progress = algorithmProgress(grid),
+                active = [];
+
+            addToActive(grid.randomCell());
+
+            while (active.length) {
+                const randomActiveCell = random.choice(active),
+                    randomInactiveNeighbour = randomActiveCell.neighbours.random(isUnvisited);
+                if (!randomInactiveNeighbour) {
+                    const indexOfRandomActiveCell = active.indexOf(randomActiveCell);
+                    console.assert(indexOfRandomActiveCell > -1);
+                    active.splice(indexOfRandomActiveCell, 1);
+                } else {
+                    grid.link(randomActiveCell, randomInactiveNeighbour);
+                    addToActive(randomInactiveNeighbour);
+                    yield;
+                }
+            }
+            progress.finished();
+
         }
     }
 };

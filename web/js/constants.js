@@ -12,6 +12,7 @@ export const
     ALGORITHM_HUNT_AND_KILL = 'huntAndKill',
     ALGORITHM_RECURSIVE_BACKTRACK = 'recursiveBacktrack',
     ALGORITHM_KRUSKAL = 'kruskal',
+    ALGORITHM_SIMPLIFIED_PRIMS = 'simplifiedPrims',
 
     DIRECTION_NORTH = 'n',
     DIRECTION_SOUTH = 's',
