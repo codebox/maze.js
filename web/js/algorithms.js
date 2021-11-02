@@ -1,8 +1,8 @@
 import {forEachContiguousPair} from './utils.js';
 import {
     ALGORITHM_NONE, ALGORITHM_BINARY_TREE, ALGORITHM_SIDEWINDER, ALGORITHM_ALDOUS_BRODER, ALGORITHM_WILSON, ALGORITHM_HUNT_AND_KILL,
-    ALGORITHM_RECURSIVE_BACKTRACK, ALGORITHM_KRUSKAL, ALGORITHM_SIMPLIFIED_PRIMS,
-    METADATA_VISITED, METADATA_SET_ID, METADATA_CURRENT_CELL, METADATA_UNPROCESSED_CELL,
+    ALGORITHM_RECURSIVE_BACKTRACK, ALGORITHM_KRUSKAL, ALGORITHM_SIMPLIFIED_PRIMS, ALGORITHM_TRUE_PRIMS,
+    METADATA_VISITED, METADATA_SET_ID, METADATA_CURRENT_CELL, METADATA_UNPROCESSED_CELL, METADATA_COST,
     DIRECTION_EAST, DIRECTION_SOUTH,
     SHAPE_SQUARE, SHAPE_TRIANGLE, SHAPE_HEXAGON, SHAPE_CIRCLE
 } from './constants.js';
@@ -372,6 +372,51 @@ export const algorithms = {
             }
             progress.finished();
 
+        }
+    },
+    [ALGORITHM_TRUE_PRIMS]: {
+        metadata: {
+            'description': 'True Prims',
+            'maskable': true,
+            'shapes': [SHAPE_SQUARE, SHAPE_TRIANGLE, SHAPE_HEXAGON, SHAPE_CIRCLE]
+        },
+        fn: function*(grid, config) {
+            function addToActive(cell) {
+                active.push(cell);
+                cell.metadata[METADATA_VISITED] = true;
+                progress.step(cell);
+            }
+
+            function getCellWithLowestCost(cells) {
+                return cells.sort((n1, n2) => n1.metadata[METADATA_COST] - n2.metadata[METADATA_COST])[0]
+            }
+
+            const {random} = config,
+                progress = algorithmProgress(grid),
+                active = [];
+
+            grid.forEachCell(cell => {
+                cell.metadata[METADATA_COST] = random.int(grid.cellCount);
+            });
+
+            addToActive(grid.randomCell());
+
+            while (active.length) {
+                const randomActiveCell = getCellWithLowestCost(active),
+                    inactiveNeighbours = randomActiveCell.neighbours.toArray().filter(isUnvisited);
+                if (!inactiveNeighbours.length) {
+                    const indexOfRandomActiveCell = active.indexOf(randomActiveCell);
+                    console.assert(indexOfRandomActiveCell > -1);
+                    active.splice(indexOfRandomActiveCell, 1);
+                } else {
+                    const inactiveNeighbourWithLowestCost = getCellWithLowestCost(inactiveNeighbours);
+                    grid.link(randomActiveCell, inactiveNeighbourWithLowestCost);
+                    addToActive(inactiveNeighbourWithLowestCost);
+                    yield;
+                }
+            }
+
+            progress.finished();
         }
     }
 };

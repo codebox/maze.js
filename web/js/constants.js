@@ -13,6 +13,7 @@ export const
     ALGORITHM_RECURSIVE_BACKTRACK = 'recursiveBacktrack',
     ALGORITHM_KRUSKAL = 'kruskal',
     ALGORITHM_SIMPLIFIED_PRIMS = 'simplifiedPrims',
+    ALGORITHM_TRUE_PRIMS = 'truePrims',
 
     DIRECTION_NORTH = 'n',
     DIRECTION_SOUTH = 's',
@@ -40,6 +41,7 @@ export const
     METADATA_UNPROCESSED_CELL = 'unprocessed',
     METADATA_START_CELL = 'startCell',
     METADATA_END_CELL = 'endCell',
+    METADATA_COST = 'cost',
 
     EXITS_NONE = 'no exits',
     EXITS_HARDEST = 'hardest',
