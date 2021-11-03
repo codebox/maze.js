@@ -479,6 +479,13 @@ export function buildTriangularGrid(config) {
             return (v1 + v2) / 2;
         }
 
+        grid.forEachCell(cell => {
+            "use strict";
+            const [x,y] = cell.coords,
+                [p1x, p1y, p2x, p2y, p3x, p3y] = getCornerCoords(x, y);
+            drawFilledTriangle(p1x, p1y, p2x, p2y, p3x, p3y, cell);
+        });
+
         const path = grid.metadata[METADATA_PATH];
         if (path) {
             let previousX, previousY;
@@ -514,13 +521,6 @@ export function buildTriangularGrid(config) {
 
             drawingSurface.setColour(WALL_COLOUR);
         }
-
-        grid.forEachCell(cell => {
-            "use strict";
-            const [x,y] = cell.coords,
-                [p1x, p1y, p2x, p2y, p3x, p3y] = getCornerCoords(x, y);
-            drawFilledTriangle(p1x, p1y, p2x, p2y, p3x, p3y, cell);
-        });
 
         grid.forEachCell(cell => {
             "use strict";
