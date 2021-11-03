@@ -42,6 +42,8 @@ export const
     METADATA_START_CELL = 'startCell',
     METADATA_END_CELL = 'endCell',
     METADATA_COST = 'cost',
+    METADATA_PLAYER_CURRENT = 'playerCurrent',
+    METADATA_PLAYER_VISITED = 'playerVisited',
 
     EXITS_NONE = 'no exits',
     EXITS_HARDEST = 'hardest',
@@ -52,5 +54,7 @@ export const
     CELL_BACKGROUND_COLOUR = 'white',
     CELL_MASKED_COLOUR = 'grey',
     CELL_UNPROCESSED_CELL_COLOUR = '#bbb',
+    CELL_PLAYER_CURRENT_COLOUR = PATH_COLOUR,
+    CELL_PLAYER_VISITED_COLOUR = PATH_COLOUR + '44',
     CELL_CURRENT_CELL_COLOUR = PATH_COLOUR,
     WALL_COLOUR = 'black';

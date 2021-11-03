@@ -1,13 +1,14 @@
 import {buildEventTarget} from './utils.js';
 import {
     METADATA_DISTANCE, METADATA_PATH, METADATA_MAX_DISTANCE, METADATA_MASKED, METADATA_CURRENT_CELL, METADATA_UNPROCESSED_CELL,
-    METADATA_START_CELL, METADATA_END_CELL,
+    METADATA_START_CELL, METADATA_END_CELL, METADATA_PLAYER_CURRENT, METADATA_PLAYER_VISITED,
     EVENT_CLICK,
     DIRECTION_NORTH, DIRECTION_SOUTH, DIRECTION_EAST, DIRECTION_WEST,
     DIRECTION_NORTH_WEST, DIRECTION_NORTH_EAST, DIRECTION_SOUTH_WEST, DIRECTION_SOUTH_EAST,
     DIRECTION_CLOCKWISE, DIRECTION_ANTICLOCKWISE,
     DIRECTION_INWARDS, DIRECTION_OUTWARDS,
     CELL_BACKGROUND_COLOUR, WALL_COLOUR, PATH_COLOUR, CELL_MASKED_COLOUR, CELL_CURRENT_CELL_COLOUR, CELL_UNPROCESSED_CELL_COLOUR,
+    CELL_PLAYER_CURRENT_COLOUR, CELL_PLAYER_VISITED_COLOUR,
     EXITS_NONE, EXITS_HORIZONTAL, EXITS_VERTICAL, EXITS_HARDEST
 } from './constants.js';
 
@@ -26,6 +27,12 @@ function getCellBackgroundColour(cell, grid) {
     } else if (cell.metadata[METADATA_UNPROCESSED_CELL]) {
         return CELL_UNPROCESSED_CELL_COLOUR;
 
+    } else if (cell.metadata[METADATA_PLAYER_CURRENT]) {
+        return CELL_PLAYER_CURRENT_COLOUR;
+
+    } else if (cell.metadata[METADATA_PLAYER_VISITED]) {
+        return CELL_PLAYER_VISITED_COLOUR;
+
     } else {
         return CELL_BACKGROUND_COLOUR;
     }
@@ -42,7 +49,7 @@ function buildBaseGrid(config) {
     }
     function buildCell(...coords) {
         const id = makeIdFromCoords(coords);
-        return { //TODO move methods outside so we only have 1 copy of each function
+        const cell = { //TODO move methods outside so we only have 1 copy of each function
             id,
             coords,
             metadata: {},
@@ -50,8 +57,11 @@ function buildBaseGrid(config) {
                 random(fnCriteria = () => true) {
                     return random.choice(this.toArray().filter(fnCriteria));
                 },
-                toArray() {
-                    return Object.values(this).filter(value => typeof value !== 'function');
+                toArray(fnCriteria = () => true) {
+                    return Object.values(this).filter(value => typeof value !== 'function').filter(fnCriteria);
+                },
+                linkedDirections() {
+                    return this.toArray().filter(neighbour => neighbour.isLinkedTo(cell)).map(linkedNeighbour => Object.keys(this).find(direction => this[direction] === linkedNeighbour));
                 }
             },
             isLinkedTo(otherCell) {
@@ -59,6 +69,7 @@ function buildBaseGrid(config) {
             },
             links: []
         };
+        return cell;
     }
     function removeNeighbour(cell, neighbour) {
         const linkIndex = cell.links.indexOf(neighbour);
