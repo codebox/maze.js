@@ -193,6 +193,13 @@ function buildBaseGrid(config) {
             this.forEachCell(cell => delete cell.metadata[METADATA_DISTANCE]);
             delete this.metadata[METADATA_MAX_DISTANCE];
         },
+        clearPathAndSolution() {
+            delete this.metadata[METADATA_PATH];
+            this.forEachCell(cell => {
+                delete cell.metadata[METADATA_PLAYER_CURRENT];
+                delete cell.metadata[METADATA_PLAYER_VISITED];
+            });
+        },
         dispose() {
             eventTarget.off();
             if (config.drawingSurface) {
