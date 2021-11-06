@@ -15,6 +15,8 @@ export const drawingSurfaces = {
             eventTarget.trigger(EVENT_CLICK, {
                 x: invXCoord(event.offsetX),
                 y: invYCoord(event.offsetY),
+                rawX: event.offsetX,
+                rawY: event.offsetY,
                 shift: event.shiftKey
             });
         }
@@ -96,6 +98,9 @@ export const drawingSurfaces = {
                 this.arc(cx, cy, smallR, endAngle, startAngle, true, true);
                 ctx.closePath();
                 ctx.fill();
+            },
+            convertCoords(x, y) {
+                return [xCoord(x), yCoord(y)];
             },
             on(eventName, handler) {
                 eventTarget.on(eventName, handler);
@@ -208,6 +213,9 @@ export const drawingSurfaces = {
                 elPath.setAttribute('stroke', colour);
                 elLine.setAttribute('stroke-width', lineWidth);
                 el.appendChild(elPath);
+            },
+            convertCoords(x, y) {
+                return [xCoord(x), yCoord(y)];
             },
             on(eventName, handler) {
                 eventTarget.on(eventName, handler);

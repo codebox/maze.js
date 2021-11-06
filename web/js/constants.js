@@ -44,6 +44,7 @@ export const
     METADATA_COST = 'cost',
     METADATA_PLAYER_CURRENT = 'playerCurrent',
     METADATA_PLAYER_VISITED = 'playerVisited',
+    METADATA_RAW_COORDS = 'rawCoords',
 
     EXITS_NONE = 'no exits',
     EXITS_HARDEST = 'hardest',

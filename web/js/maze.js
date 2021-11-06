@@ -1,7 +1,7 @@
 import {buildEventTarget} from './utils.js';
 import {
     METADATA_DISTANCE, METADATA_PATH, METADATA_MAX_DISTANCE, METADATA_MASKED, METADATA_CURRENT_CELL, METADATA_UNPROCESSED_CELL,
-    METADATA_START_CELL, METADATA_END_CELL, METADATA_PLAYER_CURRENT, METADATA_PLAYER_VISITED,
+    METADATA_START_CELL, METADATA_END_CELL, METADATA_PLAYER_CURRENT, METADATA_PLAYER_VISITED, METADATA_RAW_COORDS,
     EVENT_CLICK,
     DIRECTION_NORTH, DIRECTION_SOUTH, DIRECTION_EAST, DIRECTION_WEST,
     DIRECTION_NORTH_WEST, DIRECTION_NORTH_EAST, DIRECTION_SOUTH_WEST, DIRECTION_SOUTH_EAST,
@@ -223,6 +223,7 @@ export function buildSquareGrid(config) {
         if (grid.getCellByCoordinates(coords)) {
             eventTarget.trigger(EVENT_CLICK, {
                 coords,
+                rawCoords: [event.rawX, event.rawY],
                 shift: event.shift
             });
         }
@@ -284,6 +285,7 @@ export function buildSquareGrid(config) {
             if ((!westNeighbour || !cell.isLinkedTo(westNeighbour)) && !(exitDirection === DIRECTION_WEST)) {
                 drawingSurface.line(x,y,x,y+1);
             }
+            cell.metadata[METADATA_RAW_COORDS] = drawingSurface.convertCoords(x + 0.5, y + 0.5);
         });
 
         const path = grid.metadata[METADATA_PATH];
@@ -386,10 +388,26 @@ export function buildSquareGrid(config) {
         } else if (exitConfig === EXITS_HORIZONTAL) {
             findHorizontalExits();
         }
+    };
 
+    grid.getClosestDirectionForClick = function(cell, clickEvent) {
+        const [cellX, cellY] = cell.metadata[METADATA_RAW_COORDS],
+            [clickX, clickY] = clickEvent.rawCoords,
+            xDiff = clickX - cellX,
+            yDiff = clickY - cellY;
+
+        if (Math.abs(xDiff) < Math.abs(yDiff)) {
+            return yDiff > 0 ? DIRECTION_SOUTH : DIRECTION_NORTH;
+        } else {
+            return xDiff > 0 ? DIRECTION_EAST : DIRECTION_WEST;
+        }
     };
 
     return grid;
+}
+
+function midPoint(...values) {
+    return values.reduce((a,b) => a + b, 0) / values.length;
 }
 
 export function buildTriangularGrid(config) {
@@ -431,6 +449,7 @@ export function buildTriangularGrid(config) {
         if (grid.getCellByCoordinates(coords)) {
             eventTarget.trigger(EVENT_CLICK, {
                 coords,
+                rawCoords: [event.rawX, event.rawY],
                 shift: event.shift
             });
         }
@@ -492,10 +511,6 @@ export function buildTriangularGrid(config) {
         }
 
         drawingSurface.clear();
-
-        function midPoint(v1, v2) {
-            return (v1 + v2) / 2;
-        }
 
         grid.forEachCell(cell => {
             "use strict";
@@ -561,6 +576,7 @@ export function buildTriangularGrid(config) {
             if ((!westNeighbour || !cell.isLinkedTo(westNeighbour)) && !(exitDirection === DIRECTION_WEST)) {
                 drawingSurface.line(p1x, p1y, p2x, p2y);
             }
+            cell.metadata[METADATA_RAW_COORDS] = drawingSurface.convertCoords(midPoint(p1x, p2x, p3x), midPoint(p1y, p2y, p3y));
         });
     };
 
@@ -651,10 +667,47 @@ export function buildTriangularGrid(config) {
         } else if (exitConfig === EXITS_HORIZONTAL) {
             findHorizontalExits();
         }
+    };
 
+    grid.getClosestDirectionForClick = function(cell, clickEvent) {
+        const cellCoords = cell.metadata[METADATA_RAW_COORDS],
+            clickCoords = clickEvent.rawCoords,
+            baseOnSouthSide = hasBaseOnSouthSide(...cell.coords);
+
+        let angleFromNorth = getAngleFromNorth(cellCoords, clickCoords),
+            sixtyDegrees = Math.PI * 2 / 6;
+
+        if (baseOnSouthSide) {
+            if (Math.abs(angleFromNorth) > 2 * sixtyDegrees) {
+                return DIRECTION_SOUTH;
+            } else if (angleFromNorth > 0) {
+                return DIRECTION_EAST;
+            } else {
+                return DIRECTION_WEST;
+            }
+        } else {
+            if (Math.abs(angleFromNorth) < sixtyDegrees) {
+                return DIRECTION_NORTH;
+            } else if (angleFromNorth > 0) {
+                return DIRECTION_EAST;
+            } else {
+                return DIRECTION_WEST;
+            }
+        }
     };
 
     return grid;
+}
+
+function getAngleFromNorth(origin, point) {
+    const [ox, oy] = origin,
+        [px, py] = point,
+        angle = Math.atan2(oy - py, px - ox),
+        transformedAngle = Math.PI / 2 - angle;
+    if (transformedAngle <= Math.PI) {
+        return transformedAngle;
+    }
+    return -(Math.PI * 2 - transformedAngle);
 }
 
 export function buildHexagonalGrid(config) {
@@ -704,6 +757,7 @@ export function buildHexagonalGrid(config) {
         if (grid.getCellByCoordinates(coords)) {
             eventTarget.trigger(EVENT_CLICK, {
                 coords,
+                rawCoords: [event.rawX, event.rawY],
                 shift: event.shift
             });
         }
@@ -800,6 +854,7 @@ export function buildHexagonalGrid(config) {
             if ((!southWestNeighbour || !cell.isLinkedTo(southWestNeighbour)) && !(exitDirection === DIRECTION_SOUTH_WEST)) {
                 drawingSurface.line(p2x, p2y, p3x, p3y);
             }
+            cell.metadata[METADATA_RAW_COORDS] = drawingSurface.convertCoords(midPoint(p1x, p2x, p3x, p4x, p5x, p6x), midPoint(p1y, p2y, p3y, p4y, p5y, p6y));
         });
 
         const path = grid.metadata[METADATA_PATH];
@@ -903,6 +958,17 @@ export function buildHexagonalGrid(config) {
         }
     };
 
+    grid.getClosestDirectionForClick = function(cell, clickEvent) {
+        const cellCoords = cell.metadata[METADATA_RAW_COORDS],
+            clickCoords = clickEvent.rawCoords;
+
+        let angleFromNorth = getAngleFromNorth(cellCoords, clickCoords),
+            sixtyDegrees = Math.PI * 2 / 6,
+            sector = Math.floor((angleFromNorth + Math.PI) / sixtyDegrees);
+
+        return [DIRECTION_SOUTH_WEST, DIRECTION_WEST, DIRECTION_NORTH_WEST, DIRECTION_NORTH_EAST, DIRECTION_EAST, DIRECTION_SOUTH_EAST][sector];
+    };
+
     return grid;
 }
 
@@ -931,6 +997,7 @@ export function buildCircularGrid(config) {
         if (grid.getCellByCoordinates(coords)) {
             eventTarget.trigger(EVENT_CLICK, {
                 coords,
+                rawCoords: [event.rawX, event.rawY],
                 shift: event.shift
             });
         }
@@ -977,6 +1044,57 @@ export function buildCircularGrid(config) {
         }
     };
 
+    function getCellCoords(l, c) {
+        const cellsInLayer = cellCounts[l],
+            anglePerCell = Math.PI * 2 / cellsInLayer,
+            startAngle = anglePerCell * c,
+            endAngle = startAngle + anglePerCell,
+            innerDistance = l,
+            outerDistance = l + 1;
+
+        return [startAngle, endAngle, innerDistance, outerDistance];
+    }
+
+    function thisCell(thisCoords) {
+        const LAYER = 0, INDEX = 1,
+            [thisLayer, thisIndex] = thisCoords;
+        return {
+            isOnInnermostLayer() {
+                return thisLayer === 0;
+            },
+            isOnOutermostLayer() {
+                return thisLayer === grid.metadata.layers - 1;
+            },
+            hasFiveExits() {
+                return ! this.isOnInnermostLayer() && ! this.isOnOutermostLayer() && (cellCounts[thisLayer] < cellCounts[thisLayer + 1]);
+            },
+            hasAntiClockwiseOutsideBorderWith(otherCoords) {
+                return this.hasFiveExits() && thisLayer + 1 === otherCoords[LAYER] && thisIndex * 2 === otherCoords[INDEX];
+            },
+            hasClockwiseOutsideBorderWith(otherCoords) {
+                return this.hasFiveExits() && thisLayer + 1 === otherCoords[LAYER] && thisIndex * 2 + 1=== otherCoords[INDEX];
+            },
+            isInSameLayerAs(otherCoords) {
+                return thisLayer === otherCoords[LAYER];
+            },
+            isInside(otherCoords) {
+                return thisLayer < otherCoords[LAYER];
+            },
+            isOutside(otherCoords) {
+                return thisLayer > otherCoords[LAYER];
+            },
+            isAntiClockwiseFrom(otherCoords) {
+                return this.isInSameLayerAs(otherCoords) && ((otherCoords[INDEX] === thisIndex + 1) || (thisIndex === cellCounts[thisLayer] - 1 && otherCoords[INDEX] === 0));
+            },
+            isClockwiseFrom(otherCoords) {
+                return this.isInSameLayerAs(otherCoords) && ((otherCoords[INDEX] === thisIndex - 1) || (otherCoords[INDEX] === cellCounts[thisLayer] - 1 && thisIndex === 0));
+            },
+            getCoords() {
+                return getCellCoords(thisLayer, thisIndex);
+            }
+        };
+    }
+
     grid.render = function() {
         function polarToXy(angle, distance) {
             return [cx + distance * Math.sin(angle), cy - distance * Math.cos(angle)];
@@ -985,17 +1103,6 @@ export function buildCircularGrid(config) {
             drawingSurface.setColour(getCellBackgroundColour(cell, grid));
             drawingSurface.fillSegment(cx, cy, smallR, bigR, startAngle, endAngle);
             drawingSurface.setColour(WALL_COLOUR);
-        }
-
-        function getCellCoords(l, c) {
-            const cellsInLayer = cellCounts[l],
-                anglePerCell = Math.PI * 2 / cellsInLayer,
-                startAngle = anglePerCell * c,
-                endAngle = startAngle + anglePerCell,
-                innerDistance = l,
-                outerDistance = l + 1;
-
-            return [startAngle, endAngle, innerDistance, outerDistance];
         }
 
         drawingSurface.clear();
@@ -1042,50 +1149,13 @@ export function buildCircularGrid(config) {
                         drawingSurface.arc(cx, cy, outerDistance, halfwayAngle, endAngle);
                     }
                 }
+                cell.metadata[METADATA_RAW_COORDS] = drawingSurface.convertCoords(...polarToXy(midPoint(startAngle, endAngle), midPoint(innerDistance, outerDistance)));
+            } else {
+                cell.metadata[METADATA_RAW_COORDS] = drawingSurface.convertCoords(cx, cy);
             }
         });
 
         const path = grid.metadata[METADATA_PATH];
-
-        function thisCell(thisCoords) {
-            const LAYER = 0, INDEX = 1,
-                [thisLayer, thisIndex] = thisCoords;
-            return {
-                isOnInnermostLayer() {
-                    return thisLayer === 0;
-                },
-                isOnOutermostLayer() {
-                    return thisLayer === grid.metadata.layers - 1;
-                },
-                hasFiveExits() {
-                    return ! this.isOnInnermostLayer() && ! this.isOnOutermostLayer() && (cellCounts[thisLayer] < cellCounts[thisLayer + 1]);
-                },
-                hasAntiClockwiseOutsideBorderWith(otherCoords) {
-                    return this.hasFiveExits() && thisLayer + 1 === otherCoords[LAYER] && thisIndex * 2 === otherCoords[INDEX];
-                },
-                hasClockwiseOutsideBorderWith(otherCoords) {
-                    return this.hasFiveExits() && thisLayer + 1 === otherCoords[LAYER] && thisIndex * 2 + 1=== otherCoords[INDEX];
-                },
-                isInSameLayerAs(otherCoords) {
-                    return thisLayer === otherCoords[LAYER];
-                },
-                isInside(otherCoords) {
-                    return thisLayer < otherCoords[LAYER];
-                },
-                isOutside(otherCoords) {
-                    return thisLayer > otherCoords[LAYER];
-                },
-                isAntiClockwiseFrom(otherCoords) {
-                    return this.isInSameLayerAs(otherCoords) && ((otherCoords[INDEX] === thisIndex + 1) || (thisIndex === cellCounts[thisLayer] - 1 && otherCoords[INDEX] === 0));
-                },
-                isClockwiseFrom(otherCoords) {
-                    return this.isInSameLayerAs(otherCoords) && ((otherCoords[INDEX] === thisIndex - 1) || (otherCoords[INDEX] === cellCounts[thisLayer] - 1 && thisIndex === 0));
-                },
-                getCoords() {
-                    return getCellCoords(thisLayer, thisIndex);
-                }
-            };
-        }
 
         if (path) {
             drawingSurface.setColour(PATH_COLOUR);
@@ -1345,6 +1415,30 @@ export function buildCircularGrid(config) {
 
         } else if (exitConfig === EXITS_HORIZONTAL) {
             findHorizontalExits();
+        }
+    };
+
+    grid.getClosestDirectionForClick = function(cell, clickEvent) {
+        const cellCoords = cell.metadata[METADATA_RAW_COORDS],
+            clickCoords = clickEvent.rawCoords,
+            [startAngle, endAngle, _1, _2] = getCellCoords(...cell.coords),
+            coordAngle = midPoint(startAngle, endAngle),
+            hasFiveExits = thisCell(cell.coords).hasFiveExits();
+
+        let angleFromNorth = getAngleFromNorth(cellCoords, clickCoords), // -180 to 180
+            angleFromLineToCenter = (Math.PI * 4 + angleFromNorth - coordAngle) % (Math.PI * 2); //
+
+        const fortyFiveDegrees = Math.PI / 4;
+        if (angleFromLineToCenter <= fortyFiveDegrees) {
+            return `${DIRECTION_OUTWARDS}_${hasFiveExits ? 1 : 0}`;
+        } else if (angleFromLineToCenter > fortyFiveDegrees && angleFromLineToCenter <= 3 * fortyFiveDegrees) {
+            return DIRECTION_CLOCKWISE;
+        } else if (angleFromLineToCenter > 3 * fortyFiveDegrees && angleFromLineToCenter <= 5 * fortyFiveDegrees) {
+            return DIRECTION_INWARDS;
+        } else if (angleFromLineToCenter > 5 * fortyFiveDegrees && angleFromLineToCenter <= 7 * fortyFiveDegrees) {
+            return DIRECTION_ANTICLOCKWISE;
+        } else {
+            return `${DIRECTION_OUTWARDS}_0`;
         }
     };
 
