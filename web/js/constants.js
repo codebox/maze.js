@@ -14,6 +14,7 @@ export const
     ALGORITHM_KRUSKAL = 'kruskal',
     ALGORITHM_SIMPLIFIED_PRIMS = 'simplifiedPrims',
     ALGORITHM_TRUE_PRIMS = 'truePrims',
+    ALGORITHM_ELLERS = 'ellers',
 
     DIRECTION_NORTH = 'n',
     DIRECTION_SOUTH = 's',

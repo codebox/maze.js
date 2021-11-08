@@ -1,7 +1,7 @@
 import {forEachContiguousPair} from './utils.js';
 import {
     ALGORITHM_NONE, ALGORITHM_BINARY_TREE, ALGORITHM_SIDEWINDER, ALGORITHM_ALDOUS_BRODER, ALGORITHM_WILSON, ALGORITHM_HUNT_AND_KILL,
-    ALGORITHM_RECURSIVE_BACKTRACK, ALGORITHM_KRUSKAL, ALGORITHM_SIMPLIFIED_PRIMS, ALGORITHM_TRUE_PRIMS,
+    ALGORITHM_RECURSIVE_BACKTRACK, ALGORITHM_KRUSKAL, ALGORITHM_SIMPLIFIED_PRIMS, ALGORITHM_TRUE_PRIMS, ALGORITHM_ELLERS,
     METADATA_VISITED, METADATA_SET_ID, METADATA_CURRENT_CELL, METADATA_UNPROCESSED_CELL, METADATA_COST,
     DIRECTION_EAST, DIRECTION_SOUTH,
     SHAPE_SQUARE, SHAPE_TRIANGLE, SHAPE_HEXAGON, SHAPE_CIRCLE
@@ -417,6 +417,100 @@ export const algorithms = {
             }
 
             progress.finished();
+        }
+    },
+    [ALGORITHM_ELLERS]: {
+        metadata: {
+            'description': 'Ellers',
+            'maskable': false,
+            'shapes': [SHAPE_SQUARE]
+        },
+        fn: function*(grid, config) {
+            "use strict";
+            const ODDS_OF_MERGE = 2,
+                ODDS_OF_LINK_BELOW = 5,
+                sets = {},
+                {random} = config,
+                {width, height} = grid.metadata;
+            let nextSetId = 1;
+
+            function addCellToSet(setId, cell) {
+                cell.metadata[METADATA_SET_ID] = setId;
+                if (!sets[setId]) {
+                    sets[setId] = [];
+                }
+                sets[setId].push(cell);
+            }
+
+            function mergeSets(setId1, setId2) {
+                const set1 = sets[setId1],
+                    set2 = sets[setId2];
+                console.assert(set1.length && set2.length);
+                set2.forEach(cell => addCellToSet(setId1, cell));
+                delete sets[setId2];
+            }
+
+            function linkToCellBelow(cell) {
+                const [x,y] = cell.coords,
+                    cellBelow = grid.getCellByCoordinates(x, y+1);
+                grid.link(cell, cellBelow);
+                addCellToSet(cell.metadata[METADATA_SET_ID], cellBelow);
+            }
+
+            function mergeCellsInRow(y, oddsOfMerge=1) {
+                for(let i=0; i<width-1; i++) {
+                    const cell1 = grid.getCellByCoordinates(i, y),
+                        cell2 = grid.getCellByCoordinates(i+1, y),
+                        cell1SetId = cell1.metadata[METADATA_SET_ID],
+                        cell2SetId = cell2.metadata[METADATA_SET_ID];
+
+                    if (cell1SetId !== cell2SetId && random.int(oddsOfMerge) === 0) {
+                        grid.link(cell1, cell2);
+                        mergeSets(cell1.metadata[METADATA_SET_ID], cell2.metadata[METADATA_SET_ID]);
+                    }
+                }
+            }
+
+            for (let y = 0; y < height; y++) {
+                const row = [];
+                for (let x = 0; x < width; x++) {
+                    const cell = grid.getCellByCoordinates(x, y);
+                    if (!cell.metadata[METADATA_SET_ID]) {
+                        addCellToSet(nextSetId++, cell);
+                    }
+                    row.push(cell);
+                }
+
+                const isLastRow = y === height - 1;
+                if (isLastRow) {
+                    mergeCellsInRow(y);
+
+                } else {
+                    mergeCellsInRow(y, ODDS_OF_MERGE);
+
+                    const cellsInRowBySet = {};
+                    row.forEach(cell => {
+                        const setId = cell.metadata[METADATA_SET_ID];
+                        if (!cellsInRowBySet[setId]) {
+                            cellsInRowBySet[setId] = [];
+                        }
+                        cellsInRowBySet[setId].push(cell);
+                    });
+
+                    Object.keys(cellsInRowBySet).forEach(setId => {
+                        random.shuffle(cellsInRowBySet[setId]).forEach((cell, i) => {
+                            if (i === 0) {
+                                linkToCellBelow(cell);
+                            } else if (random.int(ODDS_OF_LINK_BELOW) === 0) {
+                                linkToCellBelow(cell);
+                            }
+                        });
+                    });
+                }
+
+            }
+            grid.clearMetadata(METADATA_SET_ID);
+            return grid;
         }
     }
 };

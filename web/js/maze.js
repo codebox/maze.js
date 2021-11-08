@@ -190,14 +190,15 @@ function buildBaseGrid(config) {
             this.metadata[METADATA_MAX_DISTANCE] = maxDistance;
         },
         clearDistances() {
-            this.forEachCell(cell => delete cell.metadata[METADATA_DISTANCE]);
-            delete this.metadata[METADATA_MAX_DISTANCE];
+            this.clearMetadata(METADATA_DISTANCE);
         },
         clearPathAndSolution() {
-            delete this.metadata[METADATA_PATH];
-            this.forEachCell(cell => {
-                delete cell.metadata[METADATA_PLAYER_CURRENT];
-                delete cell.metadata[METADATA_PLAYER_VISITED];
+            this.clearMetadata(METADATA_PATH, METADATA_PLAYER_CURRENT, METADATA_PLAYER_VISITED);
+        },
+        clearMetadata(...keys) {
+            keys.forEach(key => {
+                delete this.metadata[key];
+                this.forEachCell(cell => delete cell.metadata[key]);
             });
         },
         dispose() {
