@@ -216,10 +216,10 @@ function getDistanceColour(distance, maxDistance) {
 
 export function buildSquareGrid(config) {
     "use strict";
-    const {drawingSurface} = config,
+    const {drawingSurface: defaultDrawingSurface} = config,
         grid = buildBaseGrid(config);
 
-    drawingSurface.on(EVENT_CLICK, event => {
+    defaultDrawingSurface.on(EVENT_CLICK, event => {
         const coords = [Math.floor(event.x), Math.floor(event.y)];
         if (grid.getCellByCoordinates(coords)) {
             eventTarget.trigger(EVENT_CLICK, {
@@ -230,7 +230,6 @@ export function buildSquareGrid(config) {
             });
         }
     });
-    drawingSurface.setSpaceRequirements(grid.metadata.width, grid.metadata.height);
 
     grid.isSquare = true;
     grid.initialise = function() {
@@ -254,13 +253,14 @@ export function buildSquareGrid(config) {
         }
     };
 
-    grid.render = function() {
+    grid.render = function(drawingSurface = defaultDrawingSurface) {
         function drawFilledSquare(p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y, cell) {
             drawingSurface.setColour(getCellBackgroundColour(cell, grid));
             drawingSurface.fillPolygon({x: p1x, y:p1y}, {x: p2x, y:p2y}, {x: p3x, y:p3y}, {x: p4x, y:p4y});
             drawingSurface.setColour(WALL_COLOUR);
         }
 
+        drawingSurface.setSpaceRequirements(grid.metadata.width, grid.metadata.height);
         drawingSurface.clear();
         grid.forEachCell(cell => {
             const [x,y] = cell.coords;
@@ -414,11 +414,11 @@ function midPoint(...values) {
 
 export function buildTriangularGrid(config) {
     "use strict";
-    const {drawingSurface} = config,
+    const {drawingSurface: defaultDrawingSurface} = config,
         grid = buildBaseGrid(config),
         verticalAltitude = Math.sin(Math.PI/3);
 
-    drawingSurface.on(EVENT_CLICK, event => {
+    defaultDrawingSurface.on(EVENT_CLICK, event => {
         function getXCoord(event) {
             const xDivision = 2 * event.x,
                 y = getYCoord(event);
@@ -457,7 +457,6 @@ export function buildTriangularGrid(config) {
             });
         }
     });
-    drawingSurface.setSpaceRequirements(0.5 + grid.metadata.width/2, grid.metadata.height * verticalAltitude, 0.8);
 
     function hasBaseOnSouthSide(x,y) {
         return (x+y) % 2;
@@ -484,7 +483,9 @@ export function buildTriangularGrid(config) {
         }
     };
 
-    grid.render = function() {
+    grid.render = function(drawingSurface = defaultDrawingSurface) {
+        drawingSurface.setSpaceRequirements(0.5 + grid.metadata.width/2, grid.metadata.height * verticalAltitude, 0.8);
+
         function drawFilledTriangle(p1x, p1y, p2x, p2y, p3x, p3y, cell) {
             drawingSurface.setColour(getCellBackgroundColour(cell, grid));
             drawingSurface.fillPolygon({x: p1x, y:p1y}, {x: p2x, y:p2y}, {x: p3x, y:p3y});
@@ -715,7 +716,7 @@ function getAngleFromNorth(origin, point) {
 
 export function buildHexagonalGrid(config) {
     "use strict";
-    const {drawingSurface} = config,
+    const {drawingSurface: defaultDrawingSurface} = config,
         grid = buildBaseGrid(config);
 
     const yOffset1 = Math.cos(Math.PI / 3),
@@ -723,9 +724,7 @@ export function buildHexagonalGrid(config) {
         yOffset3 = 2,
         xOffset = Math.sin(Math.PI / 3);
 
-    drawingSurface.setSpaceRequirements(grid.metadata.width * 2 * xOffset + Math.min(1, grid.metadata.height - 1) * xOffset, grid.metadata.height * yOffset2 + yOffset1, 1.5);
-
-    drawingSurface.on(EVENT_CLICK, event => {
+    defaultDrawingSurface.on(EVENT_CLICK, event => {
         const ty = (event.y / (2 - yOffset1)) % 1;
         let x,y;
         const row = Math.floor(event.y / (2 - yOffset1)),
@@ -795,7 +794,9 @@ export function buildHexagonalGrid(config) {
         }
     };
 
-    grid.render = function() {
+    grid.render = function(drawingSurface = defaultDrawingSurface) {
+        drawingSurface.setSpaceRequirements(grid.metadata.width * 2 * xOffset + Math.min(1, grid.metadata.height - 1) * xOffset, grid.metadata.height * yOffset2 + yOffset1, 1.5);
+
         function drawFilledHexagon(p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y, p5x, p5y, p6x, p6y, cell) {
             drawingSurface.setColour(getCellBackgroundColour(cell, grid));
             drawingSurface.fillPolygon({x: p1x, y:p1y}, {x: p2x, y:p2y}, {x: p3x, y:p3y}, {x: p4x, y:p4y}, {x: p5x, y:p5y}, {x: p6x, y:p6y});
@@ -980,14 +981,12 @@ export function buildCircularGrid(config) {
     "use strict";
     const grid = buildBaseGrid(config),
         cellCounts = cellCountsForLayers(config.layers),
-        {drawingSurface} = config;
-
-    drawingSurface.setSpaceRequirements(grid.metadata.layers * 2, grid.metadata.layers * 2, 1.5);
+        {drawingSurface: defaultDrawingSurface} = config;
 
     const cx = grid.metadata.layers,
         cy = grid.metadata.layers;
 
-    drawingSurface.on(EVENT_CLICK, event => {
+    defaultDrawingSurface.on(EVENT_CLICK, event => {
         const xDistance = event.x - cx,
             yDistance = event.y - cy,
             distanceFromCenter = Math.sqrt(Math.pow(xDistance, 2) + Math.pow(yDistance, 2)),
@@ -1100,7 +1099,9 @@ export function buildCircularGrid(config) {
         };
     }
 
-    grid.render = function() {
+    grid.render = function(drawingSurface = defaultDrawingSurface) {
+        drawingSurface.setSpaceRequirements(grid.metadata.layers * 2, grid.metadata.layers * 2, 1.5);
+
         function polarToXy(angle, distance) {
             return [cx + distance * Math.sin(angle), cy - distance * Math.cos(angle)];
         }
@@ -1449,21 +1450,3 @@ export function buildCircularGrid(config) {
 
     return grid;
 }
-
-
-//
-// export function buildGrid(config) {
-//     "use strict";
-//     const grid = shapeLookup[config.style](config);
-//     grid.initialise();
-//     return grid;
-// }
-//
-// export function buildMaze(grid, config) {
-//     "use strict";
-//     const
-//         algorithm = algorithms[config.algorithm];
-//         algorithm.fn(grid, config);
-//
-//     return grid;
-// }

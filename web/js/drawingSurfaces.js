@@ -115,10 +115,9 @@ export const drawingSurfaces = {
     svg(config) {
         const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
         const eventTarget = buildEventTarget('drawingSurfaces.svg'),
-            {el, lineWidth} = config,
-            width = el.clientWidth,
-            height = el.clientHeight;
-        let magnification = 1, colour = 'black';
+            {el} = config,
+            width = Number(el.getAttribute('width')),
+            height = Number(el.getAttribute('height'));
 
         el.addEventListener(EVENT_CLICK, event => {
             eventTarget.trigger(EVENT_CLICK, {
@@ -129,17 +128,18 @@ export const drawingSurfaces = {
             });
         });
 
+        let magnification = 1, colour='black', lineWidth, xOffset, yOffset;
         function xCoord(x) {
-            return x * magnification;
+            return xOffset + x * magnification;
         }
         function invXCoord(x) {
-            return x / magnification;
+            return (x - xOffset) / magnification;
         }
         function yCoord(y) {
-            return y * magnification;
+            return yOffset + y * magnification;
         }
         function invYCoord(y) {
-            return y / magnification;
+            return (y - yOffset) / magnification;
         }
         function distance(d) {
             return d * magnification;
@@ -153,8 +153,16 @@ export const drawingSurfaces = {
             clear() {
                 el.innerHTML = '';
             },
-            setSpaceRequirements(requiredWidth, requiredHeight) {
-                magnification = Math.min(width/requiredWidth, height/requiredHeight);
+            setSpaceRequirements(requiredWidth, requiredHeight, shapeSpecificLineWidthAdjustment = 1) {
+                const GLOBAL_LINE_WIDTH_ADJUSTMENT = 0.1,
+                    verticalLineWidth = height * GLOBAL_LINE_WIDTH_ADJUSTMENT * shapeSpecificLineWidthAdjustment / requiredHeight,
+                    horizontalLineWidth = width * GLOBAL_LINE_WIDTH_ADJUSTMENT * shapeSpecificLineWidthAdjustment / requiredWidth;
+
+                lineWidth = Math.min(verticalLineWidth, horizontalLineWidth);
+                magnification = Math.min((width - lineWidth)/requiredWidth, (height - lineWidth)/requiredHeight);
+                xOffset = lineWidth / 2;
+                yOffset = lineWidth / 2;
+
             },
             setColour(newColour) {
                 colour = newColour;
@@ -167,6 +175,7 @@ export const drawingSurfaces = {
                 elLine.setAttribute('y2', yCoord(y2));
                 elLine.setAttribute('stroke', colour);
                 elLine.setAttribute('stroke-width', lineWidth);
+                elLine.setAttribute('stroke-linecap', 'round');
                 el.appendChild(elLine);
             },
             fillPolygon(...xyPoints) {
@@ -213,7 +222,7 @@ export const drawingSurfaces = {
                 elPath.setAttribute('d', d);
                 elPath.setAttribute('fill', 'none');
                 elPath.setAttribute('stroke', colour);
-                elLine.setAttribute('stroke-width', lineWidth);
+                elPath.setAttribute('stroke-width', lineWidth);
                 el.appendChild(elPath);
             },
             convertCoords(x, y) {
