@@ -17,7 +17,8 @@ export const drawingSurfaces = {
                 y: invYCoord(event.offsetY),
                 rawX: event.offsetX,
                 rawY: event.offsetY,
-                shift: event.shiftKey
+                shift: event.shiftKey,
+                alt: event.altKey
             });
         }
         el.addEventListener(EVENT_CLICK, onClick);
@@ -123,7 +124,8 @@ export const drawingSurfaces = {
             eventTarget.trigger(EVENT_CLICK, {
                 x: invXCoord(event.offsetX),
                 y: invYCoord(event.offsetY),
-                shift: event.shiftKey
+                shift: event.shiftKey,
+                alt: event.altKey
             });
         });
 

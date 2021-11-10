@@ -225,7 +225,8 @@ export function buildSquareGrid(config) {
             eventTarget.trigger(EVENT_CLICK, {
                 coords,
                 rawCoords: [event.rawX, event.rawY],
-                shift: event.shift
+                shift: event.shift,
+                alt: event.alt
             });
         }
     });
@@ -451,7 +452,8 @@ export function buildTriangularGrid(config) {
             eventTarget.trigger(EVENT_CLICK, {
                 coords,
                 rawCoords: [event.rawX, event.rawY],
-                shift: event.shift
+                shift: event.shift,
+                alt: event.alt
             });
         }
     });
@@ -759,7 +761,8 @@ export function buildHexagonalGrid(config) {
             eventTarget.trigger(EVENT_CLICK, {
                 coords,
                 rawCoords: [event.rawX, event.rawY],
-                shift: event.shift
+                shift: event.shift,
+                alt: event.alt
             });
         }
     });
@@ -999,7 +1002,8 @@ export function buildCircularGrid(config) {
             eventTarget.trigger(EVENT_CLICK, {
                 coords,
                 rawCoords: [event.rawX, event.rawY],
-                shift: event.shift
+                shift: event.shift,
+                alt: event.alt
             });
         }
     });
