@@ -38,6 +38,35 @@ function getCellBackgroundColour(cell, grid) {
     }
 }
 
+function findExitCells(grid) {
+    const exitDetails = {};
+
+    grid.forEachCell(cell => {
+        let direction;
+        if (direction = cell.metadata[METADATA_START_CELL]) {
+            exitDetails[METADATA_START_CELL] = [cell, direction];
+        }
+        if (direction = cell.metadata[METADATA_END_CELL]) {
+            exitDetails[METADATA_END_CELL] = [cell, direction];
+        }
+    });
+
+    if (exitDetails[METADATA_START_CELL] && exitDetails[METADATA_END_CELL]) {
+        return exitDetails;
+    }
+}
+
+const exitDirectionOffsets = {
+    [DIRECTION_NORTH] : {x: 0, y:-1},
+    [DIRECTION_SOUTH] : {x: 0, y: 1},
+    [DIRECTION_EAST]  : {x: 1, y: 0},
+    [DIRECTION_WEST]  : {x:-1, y: 0},
+    [DIRECTION_NORTH_WEST]  : {x:-1, y: -1},
+    [DIRECTION_NORTH_EAST]  : {x: 0, y: -1},
+    [DIRECTION_SOUTH_WEST]  : {x:-1, y:  1},
+    [DIRECTION_SOUTH_EAST]  : {x: 0, y:  1},
+};
+
 const eventTarget = buildEventTarget('maze');
 
 function buildBaseGrid(config) {
@@ -292,7 +321,18 @@ export function buildSquareGrid(config) {
 
         const path = grid.metadata[METADATA_PATH];
         if (path) {
-            const LINE_OFFSET = 0.5;
+            const LINE_OFFSET = 0.5,
+                exitDetails = findExitCells(grid);
+
+            if (exitDetails) {
+                const [startCell, startDirection] = exitDetails[METADATA_START_CELL],
+                    {x: startXOffset, y: startYOffset} = exitDirectionOffsets[startDirection],
+                    [endCell, endDirection] = exitDetails[METADATA_END_CELL],
+                    {x: endXOffset, y: endYOffset} = exitDirectionOffsets[endDirection];
+                path.unshift([path[0][0] + startXOffset, path[0][1] + startYOffset]);
+                path.push([path[path.length - 1][0] + endXOffset, path[path.length - 1][1] + endYOffset]);
+            }
+
             let previousCoords;
             drawingSurface.setColour(PATH_COLOUR);
             path.forEach((currentCoords, i) => {
@@ -305,6 +345,7 @@ export function buildSquareGrid(config) {
                 }
                 previousCoords = currentCoords;
             });
+
             drawingSurface.setColour(WALL_COLOUR);
         }
     };
@@ -525,8 +566,20 @@ export function buildTriangularGrid(config) {
 
         const path = grid.metadata[METADATA_PATH];
         if (path) {
+            const exitDetails = findExitCells(grid);
+
             let previousX, previousY;
             drawingSurface.setColour(PATH_COLOUR);
+
+            if (exitDetails) {
+                const [startCell, startDirection] = exitDetails[METADATA_START_CELL],
+                    {x: startXOffset, y: startYOffset} = exitDirectionOffsets[startDirection],
+                    [endCell, endDirection] = exitDetails[METADATA_END_CELL],
+                    {x: endXOffset, y: endYOffset} = exitDirectionOffsets[endDirection];
+                path.unshift([path[0][0] + startXOffset, path[0][1] + startYOffset]);
+                path.push([path[path.length - 1][0] + endXOffset, path[path.length - 1][1] + endYOffset]);
+            }
+
             for (let i = 0; i < path.length; i++) {
                 const
                     currentCellCoords = path[i],
@@ -550,10 +603,10 @@ export function buildTriangularGrid(config) {
                         currentX = midPoint(p3x, p1x);
                         currentY = midPoint(p3y, p1y);
                     }
-
                     drawingSurface.line(previousX, previousY, currentX, currentY);
                     [previousX, previousY] = [currentX, currentY];
                 }
+
             }
 
             drawingSurface.setColour(WALL_COLOUR);
@@ -803,7 +856,7 @@ export function buildHexagonalGrid(config) {
             drawingSurface.setColour(WALL_COLOUR);
         }
         function getCornerCoords(x, y) {
-            const rowXOffset = (y % 2) * xOffset,
+            const rowXOffset = Math.abs(y % 2) * xOffset,
                 p1x = rowXOffset + x * xOffset * 2,
                 p1y = yOffset1 + y * yOffset2,
                 p2x = p1x,
@@ -864,6 +917,20 @@ export function buildHexagonalGrid(config) {
 
         const path = grid.metadata[METADATA_PATH];
         if (path) {
+            const exitDetails = findExitCells(grid);
+
+            if (exitDetails) {
+                const [startCell, startDirection] = exitDetails[METADATA_START_CELL],
+                    {x: startXOffset, y: startYOffset} = exitDirectionOffsets[startDirection],
+                    offsetableDirections = [DIRECTION_NORTH_WEST, DIRECTION_NORTH_EAST, DIRECTION_SOUTH_WEST, DIRECTION_SOUTH_EAST],
+                    startRowSpecificXOffset = offsetableDirections.includes(startDirection) ? (startCell.coords[1]) % 2 : 0,
+                    [endCell, endDirection] = exitDetails[METADATA_END_CELL],
+                    endRowSpecificXOffset = offsetableDirections.includes(endDirection) ? (endCell.coords[1]) % 2 : 0,
+                    {x: endXOffset, y: endYOffset} = exitDirectionOffsets[endDirection];
+                path.unshift([path[0][0] + startXOffset + startRowSpecificXOffset, path[0][1] + startYOffset]);
+                path.push([path[path.length - 1][0] + endXOffset + endRowSpecificXOffset, path[path.length - 1][1] + endYOffset]);
+            }
+
             let previousX, previousY;
             drawingSurface.setColour(PATH_COLOUR);
             path.forEach((currentCoords, i) => {
