@@ -916,23 +916,34 @@ export function buildHexagonalGrid(config) {
         });
 
         const path = grid.metadata[METADATA_PATH];
+
+        function drawExitLine(cell, direction) {
+            const [p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y, p5x, p5y, p6x, p6y] = getCornerCoords(...cell.coords),
+                centerX = p3x,
+                centerY = (p3y + p6y) / 2;
+
+            const [endX, endY] =  {
+                [DIRECTION_EAST]       : [midPoint(p4x, p5x), midPoint(p4y, p5y)],
+                [DIRECTION_WEST]       : [midPoint(p1x, p2x), midPoint(p1y, p2y)],
+                [DIRECTION_NORTH_EAST] : [midPoint(p5x, p6x), midPoint(p5y, p6y)],
+                [DIRECTION_NORTH_WEST] : [midPoint(p1x, p6x), midPoint(p1y, p6y)],
+                [DIRECTION_SOUTH_EAST] : [midPoint(p3x, p4x), midPoint(p3y, p4y)],
+                [DIRECTION_SOUTH_WEST] : [midPoint(p2x, p3x), midPoint(p2y, p3y)],
+            }[direction];
+
+            drawingSurface.line(centerX, centerY, endX, endY);
+        }
+
         if (path) {
+            drawingSurface.setColour(PATH_COLOUR);
             const exitDetails = findExitCells(grid);
 
             if (exitDetails) {
-                const [startCell, startDirection] = exitDetails[METADATA_START_CELL],
-                    {x: startXOffset, y: startYOffset} = exitDirectionOffsets[startDirection],
-                    offsetableDirections = [DIRECTION_NORTH_WEST, DIRECTION_NORTH_EAST, DIRECTION_SOUTH_WEST, DIRECTION_SOUTH_EAST],
-                    startRowSpecificXOffset = offsetableDirections.includes(startDirection) ? (startCell.coords[1]) % 2 : 0,
-                    [endCell, endDirection] = exitDetails[METADATA_END_CELL],
-                    endRowSpecificXOffset = offsetableDirections.includes(endDirection) ? (endCell.coords[1]) % 2 : 0,
-                    {x: endXOffset, y: endYOffset} = exitDirectionOffsets[endDirection];
-                path.unshift([path[0][0] + startXOffset + startRowSpecificXOffset, path[0][1] + startYOffset]);
-                path.push([path[path.length - 1][0] + endXOffset + endRowSpecificXOffset, path[path.length - 1][1] + endYOffset]);
+                drawExitLine(...exitDetails[METADATA_START_CELL]);
+                drawExitLine(...exitDetails[METADATA_END_CELL]);
             }
 
             let previousX, previousY;
-            drawingSurface.setColour(PATH_COLOUR);
             path.forEach((currentCoords, i) => {
                 const
                     [p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y, p5x, p5y, p6x, p6y] = getCornerCoords(currentCoords[0], currentCoords[1]),
