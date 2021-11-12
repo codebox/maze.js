@@ -189,28 +189,38 @@ export const drawingSurfaces = {
                 el.appendChild(elLine);
             },
             fillSegment(cx, cy, smallR, bigR, startAngle, endAngle) {
-                const
-                    innerStartX = xCoord(cx + smallR * Math.sin(startAngle)),
-                    innerStartY = yCoord(cy - smallR * Math.cos(startAngle)),
-                    innerEndX = xCoord(cx + smallR * Math.sin(endAngle)),
-                    innerEndY = yCoord(cy - smallR * Math.cos(endAngle)),
-                    outerStartX = xCoord(cx + bigR * Math.sin(startAngle)),
-                    outerStartY = yCoord(cy - bigR * Math.cos(startAngle)),
-                    outerEndX = xCoord(cx + bigR * Math.sin(endAngle)),
-                    outerEndY = yCoord(cy - bigR * Math.cos(endAngle)),
-                    isLargeArc = endAngle - startAngle > Math.PI/2,
-                    elPath = document.createElementNS(SVG_NAMESPACE, 'path'),
-                    d = `        
-                        M ${innerStartX} ${innerStartY} ${outerStartX} ${outerStartY}
-                        A ${distance(bigR)} ${distance(bigR)} 0 ${isLargeArc ? "1" : "0"} 1 ${outerEndX} ${outerEndY}
-                        L ${innerEndX} ${innerEndY}
-                        A ${distance(smallR)} ${distance(smallR)} 0 ${isLargeArc ? "1" : "0"} 0 ${innerStartX} ${innerStartY}
-                    `;
+                const isCircle = (endAngle - startAngle === Math.PI * 2);
 
-                elPath.setAttribute('d', d);
-                elPath.setAttribute('fill', colour);
-                el.appendChild(elPath);
+                if (isCircle) {
+                    const elCircle = document.createElementNS(SVG_NAMESPACE, 'circle');
+                    elCircle.setAttribute('cx', xCoord(cx));
+                    elCircle.setAttribute('cy', yCoord(cy));
+                    elCircle.setAttribute('r', distance(bigR - smallR));
+                    elCircle.setAttribute('fill', colour);
+                    el.appendChild(elCircle);
 
+                } else {
+                    const
+                        innerStartX = xCoord(cx + smallR * Math.sin(startAngle)),
+                        innerStartY = yCoord(cy - smallR * Math.cos(startAngle)),
+                        innerEndX = xCoord(cx + smallR * Math.sin(endAngle)),
+                        innerEndY = yCoord(cy - smallR * Math.cos(endAngle)),
+                        outerStartX = xCoord(cx + bigR * Math.sin(startAngle)),
+                        outerStartY = yCoord(cy - bigR * Math.cos(startAngle)),
+                        outerEndX = xCoord(cx + bigR * Math.sin(endAngle)),
+                        outerEndY = yCoord(cy - bigR * Math.cos(endAngle)),
+                        isLargeArc = endAngle - startAngle > Math.PI / 2,
+                        elPath = document.createElementNS(SVG_NAMESPACE, 'path'),
+                        d = `        
+                            M ${innerStartX} ${innerStartY} ${outerStartX} ${outerStartY}
+                            A ${distance(bigR)} ${distance(bigR)} 0 ${isLargeArc ? "1" : "0"} 1 ${outerEndX} ${outerEndY}
+                            L ${innerEndX} ${innerEndY}
+                            A ${distance(smallR)} ${distance(smallR)} 0 ${isLargeArc ? "1" : "0"} 0 ${innerStartX} ${innerStartY}
+                        `;
+                    elPath.setAttribute('fill', colour);
+                    elPath.setAttribute('d', d);
+                    el.appendChild(elPath);
+                }
             },
             arc(cx, cy, r, startAngle, endAngle) {
                 const [startX, startY] = polarToXy(cx, cy, r, startAngle),
@@ -223,6 +233,7 @@ export const drawingSurfaces = {
                 elPath.setAttribute('fill', 'none');
                 elPath.setAttribute('stroke', colour);
                 elPath.setAttribute('stroke-width', lineWidth);
+                elPath.setAttribute('stroke-linecap', 'round');
                 el.appendChild(elPath);
             },
             convertCoords(x, y) {
