@@ -6,10 +6,8 @@ export const drawingSurfaces = {
     canvas(config) {
         const eventTarget = buildEventTarget('drawingSurfaces.canvas'),
             {el} = config,
-            {width,height} = el,
             ctx = el.getContext('2d');
 
-        ctx.lineCap = 'round';
 
         function onClick(event) {
             eventTarget.trigger(EVENT_CLICK, {
@@ -42,16 +40,18 @@ export const drawingSurfaces = {
 
         return {
             clear() {
-                ctx.clearRect(0, 0, width, height);
+                ctx.clearRect(0, 0, el.width, el.height);
             },
             setSpaceRequirements(requiredWidth, requiredHeight, shapeSpecificLineWidthAdjustment = 1) {
-                const GLOBAL_LINE_WIDTH_ADJUSTMENT = 0.1,
+                const {width,height} = el,
+                    GLOBAL_LINE_WIDTH_ADJUSTMENT = 0.1,
                     verticalLineWidth = height * GLOBAL_LINE_WIDTH_ADJUSTMENT * shapeSpecificLineWidthAdjustment / requiredHeight,
                     horizontalLineWidth = width * GLOBAL_LINE_WIDTH_ADJUSTMENT * shapeSpecificLineWidthAdjustment / requiredWidth,
                     lineWidth = Math.min(verticalLineWidth, horizontalLineWidth);
 
                 magnification = Math.min((width - lineWidth)/requiredWidth, (height - lineWidth)/requiredHeight);
                 ctx.lineWidth = lineWidth;
+                ctx.lineCap = 'round';
                 xOffset = lineWidth / 2;
                 yOffset = lineWidth / 2;
             },
