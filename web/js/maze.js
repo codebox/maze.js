@@ -686,16 +686,25 @@ export function buildTriangularGrid(config) {
 
     function findVerticalExits() {
         const centerX = Math.round(grid.metadata.width / 2) - 1;
-        let minY = Number.MAX_VALUE, maxY = Number.MIN_VALUE;
+        let minY = Number.MAX_VALUE, maxY = Number.MIN_VALUE,
+            startXCoord, endXCoord;
+
         grid.forEachCell(cell => {
             const [x,y] = cell.coords;
-            if (x === centerX) {
-                minY = Math.min(minY, y);
-                maxY = Math.max(maxY, y);
+            if (x === centerX || x === centerX + 1) {
+                if (hasBaseOnSouthSide(x, y)) {
+                    if (y > maxY) {
+                        maxY = Math.max(maxY, y);
+                        startXCoord = x;
+                    }
+                } else if (y < minY) {
+                    minY = Math.min(minY, y);
+                    endXCoord = x;
+                }
             }
         });
-        grid.getCellByCoordinates(centerX, maxY).metadata[METADATA_START_CELL] = DIRECTION_SOUTH;
-        grid.getCellByCoordinates(centerX, minY).metadata[METADATA_END_CELL] = DIRECTION_NORTH;
+        grid.getCellByCoordinates(startXCoord, maxY).metadata[METADATA_START_CELL] = DIRECTION_SOUTH;
+        grid.getCellByCoordinates(endXCoord, minY).metadata[METADATA_END_CELL] = DIRECTION_NORTH;
     }
 
     function findHorizontalExits() {
