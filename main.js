@@ -7,32 +7,7 @@ import {
     ALGORITHM_NONE, ALGORITHM_BINARY_TREE, ALGORITHM_SIDEWINDER, ALGORITHM_ALDOUS_BRODER, ALGORITHM_WILSON, ALGORITHM_HUNT_AND_KILL, ALGORITHM_RECURSIVE_BACKTRACK, ALGORITHM_KRUSKAL, ALGORITHM_SIMPLIFIED_PRIMS, ALGORITHM_TRUE_PRIMS, ALGORITHM_ELLERS
 } from './constants.js';
 
-// const random = buildRandom();
 const SIZE=30;
-// const drawingSurface1 = drawingSurfaces.canvas({el: document.getElementById('canvas1')});
-// const drawingSurface2 = drawingSurfaces.canvas({el: document.getElementById('canvas2')});
-// const drawingSurface3 = drawingSurfaces.canvas({el: document.getElementById('canvas3')});
-// const drawingSurface4 = drawingSurfaces.canvas({el: document.getElementById('canvas4')});
-// // const drawingSurface = drawingSurfaces.svg({el: document.getElementById('svg')});
-//
-// const maze1 = buildMaze({style:'triangle', width:SIZE*1.5, height:SIZE, algorithm:'recursiveBacktrack', random, drawingSurface: drawingSurface1});
-// const maze2 = buildMaze({style:'square', width:SIZE, height:SIZE, algorithm:'recursiveBacktrack', random, drawingSurface: drawingSurface2});
-// const maze3 = buildMaze({style:'hexagon', width:15, height:15, algorithm:'recursiveBacktrack', random, drawingSurface: drawingSurface3});
-// const maze4 = buildMaze({style:'circle', layers:SIZE, algorithm:'recursiveBacktrack', random, drawingSurface: drawingSurface4});
-//
-// // maze.findPathBetween([0,0], [10,10]);
-// // maze.findPathBetween([0,0], [SIZE-1,0]);
-// [maze1, maze2, maze3, maze4].forEach(maze => {
-//     // maze.findPathBetween([0,0], [10,10])
-//     maze.render();
-//
-//     maze.on(EVENT_CLICK, event => {
-//         console.log('click', event);
-//         maze.findDistancesFrom(event.coords);
-//         maze.render();
-//     });
-//
-// });
 
 const shapeLookup = {
     [SHAPE_SQUARE]: buildSquareGrid,

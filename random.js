@@ -1,5 +1,4 @@
 export function buildRandom(seed=Date.now()) {
-// export function buildRandom(seed=1635712917996) {
     console.log('SEED=', seed)
     // https://stackoverflow.com/a/47593316/138256
     function mulberry32() {
