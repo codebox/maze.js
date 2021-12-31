@@ -431,6 +431,7 @@ export const algorithms = {
                 ODDS_OF_LINK_BELOW = 5,
                 sets = {},
                 {random} = config,
+                progress = algorithmProgress(grid),
                 {width, height} = grid.metadata;
             let nextSetId = 1;
 
@@ -440,6 +441,7 @@ export const algorithms = {
                     sets[setId] = [];
                 }
                 sets[setId].push(cell);
+                progress.step(cell);
             }
 
             function mergeSets(setId1, setId2) {
@@ -479,6 +481,7 @@ export const algorithms = {
                         addCellToSet(nextSetId++, cell);
                     }
                     row.push(cell);
+                    yield;
                 }
 
                 const isLastRow = y === height - 1;
@@ -507,10 +510,10 @@ export const algorithms = {
                         });
                     });
                 }
-
+                yield;
             }
             grid.clearMetadata(METADATA_SET_ID);
-            return grid;
+            progress.finished();
         }
     }
 };
