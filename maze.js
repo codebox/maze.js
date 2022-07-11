@@ -603,7 +603,9 @@ export function buildTriangularGrid(config) {
                         currentX = midPoint(p3x, p1x);
                         currentY = midPoint(p3y, p1y);
                     }
-                    drawingSurface.line(previousX, previousY, currentX, currentY);
+                    if (i) {
+                        drawingSurface.line(previousX, previousY, currentX, currentY);
+                    }
                     [previousX, previousY] = [currentX, currentY];
                 }
 
