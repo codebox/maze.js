@@ -11,7 +11,7 @@ export function buildRandom(seed=Date.now()) {
     return {
         rnd: mulberry32,
         range(num1, num2) {
-            const [min,max] = [num1, num2].sort();
+            const [min,max] = [num1, num2].sort((a, b) => a - b);
             return Math.floor(min + (max-min+1) * mulberry32());
         },
         int(rangeSize) {
