@@ -388,7 +388,7 @@ export const algorithms = {
             }
 
             function getCellWithLowestCost(cells) {
-                return cells.sort((n1, n2) => n1.metadata[METADATA_COST] - n2.metadata[METADATA_COST])[0]
+                return cells.reduce((lowest, cell) => cell.metadata[METADATA_COST] < lowest.metadata[METADATA_COST] ? cell : lowest);
             }
 
             const {random} = config,
