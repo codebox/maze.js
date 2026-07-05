@@ -199,7 +199,7 @@ function buildBaseGrid(config) {
             const startCell = this.getCellByCoordinates(...coords);
             startCell.metadata[METADATA_DISTANCE] = 0;
             const frontier = [startCell];
-            let maxDistance = 0, maxDistancePoint;
+            let maxDistance = 0;
             while(frontier.length) {
                 const next = frontier.shift(),
                     frontierDistance = next.metadata[METADATA_DISTANCE];
@@ -212,9 +212,6 @@ function buildBaseGrid(config) {
                 });
                 frontier.push(...linkedUndistancedNeighbours);
                 if (linkedUndistancedNeighbours.length) {
-                    if (frontierDistance >= maxDistance) {
-                        maxDistancePoint = linkedUndistancedNeighbours[0];
-                    }
                     maxDistance = Math.max(frontierDistance+1, maxDistance);
                 }
             }
