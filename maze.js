@@ -394,7 +394,7 @@ export function buildSquareGrid(config) {
 
     function findVerticalExits() {
         const centerX = Math.round(grid.metadata.width / 2) - 1;
-        let minY = Number.MAX_VALUE, maxY = Number.MIN_VALUE;
+        let minY = Infinity, maxY = -Infinity;
         grid.forEachCell(cell => {
             const [x,y] = cell.coords;
             if (x === centerX) {
@@ -408,7 +408,7 @@ export function buildSquareGrid(config) {
 
     function findHorizontalExits() {
         const centerY = Math.round(grid.metadata.height / 2) - 1;
-        let minX = Number.MAX_VALUE, maxX = Number.MIN_VALUE;
+        let minX = Infinity, maxX = -Infinity;
         grid.forEachCell(cell => {
             const [x,y] = cell.coords;
             if (y === centerY) {
@@ -690,7 +690,7 @@ export function buildTriangularGrid(config) {
 
     function findVerticalExits() {
         const centerX = Math.round(grid.metadata.width / 2) - 1;
-        let minY = Number.MAX_VALUE, maxY = Number.MIN_VALUE,
+        let minY = Infinity, maxY = -Infinity,
             startXCoord, endXCoord;
 
         grid.forEachCell(cell => {
@@ -713,7 +713,7 @@ export function buildTriangularGrid(config) {
 
     function findHorizontalExits() {
         const centerY = Math.round(grid.metadata.height / 2) - 1;
-        let minX = Number.MAX_VALUE, maxX = Number.MIN_VALUE;
+        let minX = Infinity, maxX = -Infinity;
         grid.forEachCell(cell => {
             const [x,y] = cell.coords;
             if (y === centerY) {
@@ -1014,7 +1014,7 @@ export function buildHexagonalGrid(config) {
 
     function findVerticalExits() {
         const centerX = Math.round(grid.metadata.width / 2) - 1;
-        let minY = Number.MAX_VALUE, maxY = Number.MIN_VALUE;
+        let minY = Infinity, maxY = -Infinity;
         grid.forEachCell(cell => {
             const [x,y] = cell.coords;
             if (x === centerX) {
@@ -1028,7 +1028,7 @@ export function buildHexagonalGrid(config) {
 
     function findHorizontalExits() {
         const centerY = Math.round(grid.metadata.height / 2) - 1;
-        let minX = Number.MAX_VALUE, maxX = Number.MIN_VALUE;
+        let minX = Infinity, maxX = -Infinity;
         grid.forEachCell(cell => {
             const [x,y] = cell.coords;
             if (y === centerY) {
