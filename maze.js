@@ -67,11 +67,10 @@ const exitDirectionOffsets = {
     [DIRECTION_SOUTH_EAST]  : {x: 0, y:  1},
 };
 
-const eventTarget = buildEventTarget('maze');
-
 function buildBaseGrid(config) {
     "use strict";
-    const cells = {}, {random} = config;
+    const cells = {}, {random} = config,
+        eventTarget = buildEventTarget('maze');
 
     function makeIdFromCoords(coords) {
         return coords.join(',');
@@ -173,6 +172,9 @@ function buildBaseGrid(config) {
         on(eventName, handler) {
             eventTarget.on(eventName, handler);
         },
+        trigger(eventName, eventData) {
+            eventTarget.trigger(eventName, eventData);
+        },
         findPathBetween(fromCoords, toCoords) {
             this.findDistancesFrom(...toCoords);
             let currentCell = this.getCellByCoordinates(...fromCoords),
@@ -251,7 +253,7 @@ export function buildSquareGrid(config) {
     defaultDrawingSurface.on(EVENT_CLICK, event => {
         const coords = [Math.floor(event.x), Math.floor(event.y)];
         if (grid.getCellByCoordinates(coords)) {
-            eventTarget.trigger(EVENT_CLICK, {
+            grid.trigger(EVENT_CLICK, {
                 coords,
                 rawCoords: [event.rawX, event.rawY],
                 shift: event.shift,
@@ -491,7 +493,7 @@ export function buildTriangularGrid(config) {
             coords = [x,y];
 
         if (grid.getCellByCoordinates(coords)) {
-            eventTarget.trigger(EVENT_CLICK, {
+            grid.trigger(EVENT_CLICK, {
                 coords,
                 rawCoords: [event.rawX, event.rawY],
                 shift: event.shift,
@@ -823,7 +825,7 @@ export function buildHexagonalGrid(config) {
         const coords = [x, y];
 
         if (grid.getCellByCoordinates(coords)) {
-            eventTarget.trigger(EVENT_CLICK, {
+            grid.trigger(EVENT_CLICK, {
                 coords,
                 rawCoords: [event.rawX, event.rawY],
                 shift: event.shift,
@@ -1089,7 +1091,7 @@ export function buildCircularGrid(config) {
             coords = [layer, cell];
 
         if (grid.getCellByCoordinates(coords)) {
-            eventTarget.trigger(EVENT_CLICK, {
+            grid.trigger(EVENT_CLICK, {
                 coords,
                 rawCoords: [event.rawX, event.rawY],
                 shift: event.shift,
