@@ -30,6 +30,9 @@ export const
     DIRECTION_OUTWARDS = 'out',
 
     EVENT_CLICK = 'click',
+    EVENT_MOUSE_DOWN = 'mouseDown',
+    EVENT_MOUSE_UP = 'mouseUp',
+    EVENT_DRAG = 'drag',
     EVENT_MOUSE_OVER = 'mouseOver',
 
     METADATA_VISITED = 'visited',

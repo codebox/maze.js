@@ -1,6 +1,9 @@
 import {buildEventTarget} from './utils.js';
 
 export const EVENT_CLICK = 'click';
+export const EVENT_MOUSE_DOWN = 'mouseDown';
+export const EVENT_MOUSE_UP = 'mouseUp';
+export const EVENT_DRAG = 'drag';
 
 export const drawingSurfaces = {
     canvas(config) {
@@ -9,17 +12,39 @@ export const drawingSurfaces = {
             ctx = el.getContext('2d');
 
 
-        function onClick(event) {
-            eventTarget.trigger(EVENT_CLICK, {
+        function buildMouseEventData(event) {
+            return {
                 x: invXCoord(event.offsetX),
                 y: invYCoord(event.offsetY),
                 rawX: event.offsetX,
                 rawY: event.offsetY,
                 shift: event.shiftKey,
                 alt: event.altKey
-            });
+            };
+        }
+
+        function onClick(event) {
+            eventTarget.trigger(EVENT_CLICK, buildMouseEventData(event));
         }
         el.addEventListener(EVENT_CLICK, onClick);
+
+        function onMouseDown(event) {
+            eventTarget.trigger(EVENT_MOUSE_DOWN, buildMouseEventData(event));
+        }
+        el.addEventListener('mousedown', onMouseDown);
+
+        function onMouseMove(event) {
+            if (event.buttons & 1) {
+                eventTarget.trigger(EVENT_DRAG, buildMouseEventData(event));
+            }
+        }
+        el.addEventListener('mousemove', onMouseMove);
+
+        // listen on the window so drags released outside the canvas still end
+        function onMouseUp() {
+            eventTarget.trigger(EVENT_MOUSE_UP);
+        }
+        window.addEventListener('mouseup', onMouseUp);
 
         let magnification = 1, xOffset, yOffset;
         function xCoord(x) {
@@ -109,6 +134,9 @@ export const drawingSurfaces = {
             dispose() {
                 eventTarget.off();
                 el.removeEventListener(EVENT_CLICK, onClick);
+                el.removeEventListener('mousedown', onMouseDown);
+                el.removeEventListener('mousemove', onMouseMove);
+                window.removeEventListener('mouseup', onMouseUp);
             }
         };
     },

@@ -2,7 +2,7 @@ import {buildEventTarget} from './utils.js';
 import {
     METADATA_DISTANCE, METADATA_PATH, METADATA_MAX_DISTANCE, METADATA_MASKED, METADATA_CURRENT_CELL, METADATA_UNPROCESSED_CELL,
     METADATA_START_CELL, METADATA_END_CELL, METADATA_PLAYER_CURRENT, METADATA_PLAYER_VISITED, METADATA_RAW_COORDS,
-    EVENT_CLICK,
+    EVENT_CLICK, EVENT_MOUSE_DOWN, EVENT_MOUSE_UP, EVENT_DRAG,
     DIRECTION_NORTH, DIRECTION_SOUTH, DIRECTION_EAST, DIRECTION_WEST,
     DIRECTION_NORTH_WEST, DIRECTION_NORTH_EAST, DIRECTION_SOUTH_WEST, DIRECTION_SOUTH_EAST,
     DIRECTION_CLOCKWISE, DIRECTION_ANTICLOCKWISE,
@@ -239,17 +239,9 @@ function buildBaseGrid(config) {
     };
 }
 
-function getDistanceColour(distance, maxDistance) {
-    return `hsl(${Math.floor(100 - 100 * distance/maxDistance)}, 100%, 50%)`;
-}
-
-export function buildSquareGrid(config) {
-    "use strict";
-    const {drawingSurface: defaultDrawingSurface} = config,
-        grid = buildBaseGrid(config);
-
-    defaultDrawingSurface.on(EVENT_CLICK, event => {
-        const coords = [Math.floor(event.x), Math.floor(event.y)];
+function registerMouseEvents(grid, drawingSurface, getMouseEventCellCoords) {
+    drawingSurface.on(EVENT_CLICK, event => {
+        const coords = getMouseEventCellCoords(event);
         if (grid.getCellByCoordinates(coords)) {
             grid.trigger(EVENT_CLICK, {
                 coords,
@@ -259,6 +251,48 @@ export function buildSquareGrid(config) {
             });
         }
     });
+
+    drawingSurface.on(EVENT_MOUSE_DOWN, event => {
+        const coords = getMouseEventCellCoords(event);
+        if (grid.getCellByCoordinates(coords)) {
+            grid.trigger(EVENT_MOUSE_DOWN, {
+                coords,
+                rawCoords: [event.rawX, event.rawY]
+            });
+        }
+    });
+
+    let previousDragCoords;
+    drawingSurface.on(EVENT_DRAG, event => {
+        const coords = getMouseEventCellCoords(event);
+        if (previousDragCoords && coords[0] === previousDragCoords[0] && coords[1] === previousDragCoords[1]) {
+            return;
+        }
+        if (grid.getCellByCoordinates(coords)) {
+            previousDragCoords = coords;
+            grid.trigger(EVENT_DRAG, {
+                coords,
+                rawCoords: [event.rawX, event.rawY]
+            });
+        }
+    });
+
+    drawingSurface.on(EVENT_MOUSE_UP, () => {
+        previousDragCoords = null;
+        grid.trigger(EVENT_MOUSE_UP);
+    });
+}
+
+function getDistanceColour(distance, maxDistance) {
+    return `hsl(${Math.floor(100 - 100 * distance/maxDistance)}, 100%, 50%)`;
+}
+
+export function buildSquareGrid(config) {
+    "use strict";
+    const {drawingSurface: defaultDrawingSurface} = config,
+        grid = buildBaseGrid(config);
+
+    registerMouseEvents(grid, defaultDrawingSurface, event => [Math.floor(event.x), Math.floor(event.y)]);
 
     grid.isSquare = true;
     grid.initialise = function() {
@@ -460,7 +494,7 @@ export function buildTriangularGrid(config) {
         grid = buildBaseGrid(config),
         verticalAltitude = Math.sin(Math.PI/3);
 
-    defaultDrawingSurface.on(EVENT_CLICK, event => {
+    function getMouseEventCellCoords(event) {
         function getXCoord(event) {
             const xDivision = 2 * event.x,
                 y = getYCoord(event);
@@ -486,19 +520,9 @@ export function buildTriangularGrid(config) {
         function getYCoord(event) {
             return Math.floor(event.y / verticalAltitude);
         }
-        const x = getXCoord(event),
-            y = getYCoord(event),
-            coords = [x,y];
-
-        if (grid.getCellByCoordinates(coords)) {
-            grid.trigger(EVENT_CLICK, {
-                coords,
-                rawCoords: [event.rawX, event.rawY],
-                shift: event.shift,
-                alt: event.alt
-            });
-        }
-    });
+        return [getXCoord(event), getYCoord(event)];
+    }
+    registerMouseEvents(grid, defaultDrawingSurface, getMouseEventCellCoords);
 
     function hasBaseOnSouthSide(x,y) {
         return (x+y) % 2;
@@ -790,7 +814,7 @@ export function buildHexagonalGrid(config) {
         yOffset3 = 2,
         xOffset = Math.sin(Math.PI / 3);
 
-    defaultDrawingSurface.on(EVENT_CLICK, event => {
+    function getMouseEventCellCoords(event) {
         const ty = (event.y / (2 - yOffset1)) % 1;
         let x,y;
         const row = Math.floor(event.y / (2 - yOffset1)),
@@ -820,17 +844,9 @@ export function buildHexagonalGrid(config) {
             x = Math.floor((event.x - xRowBasedAdjustment) / (2 * xOffset));
             y = row;
         }
-        const coords = [x, y];
-
-        if (grid.getCellByCoordinates(coords)) {
-            grid.trigger(EVENT_CLICK, {
-                coords,
-                rawCoords: [event.rawX, event.rawY],
-                shift: event.shift,
-                alt: event.alt
-            });
-        }
-    });
+        return [x, y];
+    }
+    registerMouseEvents(grid, defaultDrawingSurface, getMouseEventCellCoords);
 
     grid.isSquare = false;
     grid.initialise = function() {
@@ -1077,7 +1093,7 @@ export function buildCircularGrid(config) {
     const cx = grid.metadata.layers,
         cy = grid.metadata.layers;
 
-    defaultDrawingSurface.on(EVENT_CLICK, event => {
+    function getMouseEventCellCoords(event) {
         const xDistance = event.x - cx,
             yDistance = event.y - cy,
             distanceFromCenter = Math.sqrt(Math.pow(xDistance, 2) + Math.pow(yDistance, 2)),
@@ -1085,18 +1101,12 @@ export function buildCircularGrid(config) {
             cellsInThisLayer = cellCounts[layer],
             anglePerCell = Math.PI * 2 / cellsInThisLayer,
             angle = (Math.atan2(yDistance, xDistance) + 2.5 * Math.PI) % (Math.PI * 2),
-            cell = Math.floor(angle / anglePerCell),
-            coords = [layer, cell];
+            cell = Math.floor(angle / anglePerCell);
 
-        if (grid.getCellByCoordinates(coords)) {
-            grid.trigger(EVENT_CLICK, {
-                coords,
-                rawCoords: [event.rawX, event.rawY],
-                shift: event.shift,
-                alt: event.alt
-            });
-        }
-    });
+        return [layer, cell];
+    }
+    registerMouseEvents(grid, defaultDrawingSurface, getMouseEventCellCoords);
+
     function cellCountsForLayers(layers) {
         const counts = [1], rowRadius = 1 / layers;
         while (counts.length < layers) {
