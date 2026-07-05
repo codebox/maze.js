@@ -200,8 +200,9 @@ function buildBaseGrid(config) {
             startCell.metadata[METADATA_DISTANCE] = 0;
             const frontier = [startCell];
             let maxDistance = 0;
-            while(frontier.length) {
-                const next = frontier.shift(),
+            // iterate by index rather than shift() to keep the BFS linear
+            for (let i = 0; i < frontier.length; i++) {
+                const next = frontier[i],
                     frontierDistance = next.metadata[METADATA_DISTANCE];
                 const linkedUndistancedNeighbours = Object.values(next.neighbours)
                     .filter(neighbour => next.isLinkedTo(neighbour))
