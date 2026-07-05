@@ -319,7 +319,8 @@ export function buildSquareGrid(config) {
             cell.metadata[METADATA_RAW_COORDS] = drawingSurface.convertCoords(x + 0.5, y + 0.5);
         });
 
-        const path = grid.metadata[METADATA_PATH];
+        // copy the path so the exit points added below don't accumulate in the stored path on each render
+        const path = grid.metadata[METADATA_PATH] && [...grid.metadata[METADATA_PATH]];
         if (path) {
             const LINE_OFFSET = 0.5,
                 exitDetails = findExitCells(grid);
@@ -564,7 +565,8 @@ export function buildTriangularGrid(config) {
             drawFilledTriangle(p1x, p1y, p2x, p2y, p3x, p3y, cell);
         });
 
-        const path = grid.metadata[METADATA_PATH];
+        // copy the path so the exit points added below don't accumulate in the stored path on each render
+        const path = grid.metadata[METADATA_PATH] && [...grid.metadata[METADATA_PATH]];
         if (path) {
             const exitDetails = findExitCells(grid);
 
