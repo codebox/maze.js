@@ -23,6 +23,22 @@ export const drawingSurfaces = {
             };
         }
 
+        // touch events have no offsetX/offsetY, so derive them from the touch position relative to the canvas
+        function buildTouchEventData(event) {
+            const rect = el.getBoundingClientRect(),
+                touch = event.touches[0] || event.changedTouches[0],
+                offsetX = (touch.clientX - rect.left) * (el.width / rect.width),
+                offsetY = (touch.clientY - rect.top) * (el.height / rect.height);
+            return {
+                x: invXCoord(offsetX),
+                y: invYCoord(offsetY),
+                rawX: offsetX,
+                rawY: offsetY,
+                shift: false,
+                alt: false
+            };
+        }
+
         function onClick(event) {
             eventTarget.trigger(EVENT_CLICK, buildMouseEventData(event));
         }
@@ -45,6 +61,25 @@ export const drawingSurfaces = {
             eventTarget.trigger(EVENT_MOUSE_UP);
         }
         window.addEventListener('mouseup', onMouseUp);
+
+        // touch equivalents of the mouse handlers above, so drag-to-select works on mobile. Page scrolling is
+        // suppressed while dragging by the app setting touch-action:none on the canvas during masking, which
+        // also ensures touchmove keeps firing rather than being consumed by the browser's scroll gesture.
+        function onTouchStart(event) {
+            eventTarget.trigger(EVENT_MOUSE_DOWN, buildTouchEventData(event));
+        }
+        el.addEventListener('touchstart', onTouchStart);
+
+        function onTouchMove(event) {
+            eventTarget.trigger(EVENT_DRAG, buildTouchEventData(event));
+        }
+        el.addEventListener('touchmove', onTouchMove);
+
+        function onTouchEnd() {
+            eventTarget.trigger(EVENT_MOUSE_UP);
+        }
+        el.addEventListener('touchend', onTouchEnd);
+        el.addEventListener('touchcancel', onTouchEnd);
 
         let magnification = 1, xOffset, yOffset;
         function xCoord(x) {
@@ -137,6 +172,10 @@ export const drawingSurfaces = {
                 el.removeEventListener('mousedown', onMouseDown);
                 el.removeEventListener('mousemove', onMouseMove);
                 window.removeEventListener('mouseup', onMouseUp);
+                el.removeEventListener('touchstart', onTouchStart);
+                el.removeEventListener('touchmove', onTouchMove);
+                el.removeEventListener('touchend', onTouchEnd);
+                el.removeEventListener('touchcancel', onTouchEnd);
             }
         };
     },
